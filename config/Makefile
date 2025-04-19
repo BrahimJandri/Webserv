@@ -1,7 +1,7 @@
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
-SRC = main.cpp parse_config.cpp
+SRC = main.cpp ConfigParser.cpp ServerConfig.cpp
 OBJ = $(SRC:.cpp=.o)
 
 all: Webserv
@@ -17,4 +17,5 @@ fclean: clean
 
 re: fclean all
 
+.SECONDARY:
 .PHONY: all clean fclean re

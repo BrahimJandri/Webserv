@@ -1,24 +1,38 @@
-#include "webserv.hpp"
+#include "ConfigParser.hpp"
 #include <iostream>
 
-int main()
+
+int main(int ac, char **av)
 {
-    std::vector<ServerConfig> servers = parse_config("config.conf");
-
-    for (size_t i = 0; i < servers.size(); ++i)
+    if (ac == 2)
     {
-        std::cout << "🔹 Server " << i + 1 << ":\n";
-        std::cout << "  Port: " << servers[i].port << "\n";
-        std::cout << "  Name: " << servers[i].server_name << "\n";
-        std::cout << "  Root: " << servers[i].root << "\n";
+        ConfigParser parser(av[1]);
+        if (!parser.parse())
+            return 1;
 
-        for (size_t j = 0; j < servers[i].locations.size(); ++j)
+        const std::vector<ServerConfig> &servers = parser.getServers();
+        for (size_t i = 0; i < servers.size(); ++i)
         {
-            std::cout << "    📁 Location " << servers[i].locations[j].path << "\n";
-            std::cout << "      Method: " << servers[i].locations[j].method << "\n";
-            std::cout << "      Root: " << servers[i].locations[j].root << "\n";
+            std::cout << "Server " << i << " on " << servers[i].host << ":" << servers[i].port << std::endl;
+            std::cout << "  Server name: " << servers[i].server_name << std::endl;
+            for (size_t j = 0; j < servers[i].locations.size(); ++j)
+            {
+                std::cout << "    Location " << servers[i].locations[j].path << std::endl;
+                std::cout << "      Root: " << servers[i].locations[j].root << std::endl;
+                std::cout << "      Index: " << servers[i].locations[j].index << std::endl;
+            }
         }
+        // for (size_t i = 0; i < servers.size(); ++i)
+        // {
+        //     int fd = create_server_socket(servers[i].host, servers[i].port);
+        //     if (fd != -1)
+        //         handle_requests(fd); // This blocks, so maybe do one for now
+        // }
     }
-
+    else
+    {
+        std::cerr << "Usage: " << av[0] << " <config_file.conf>" << std::endl;
+        return 1;
+    }
     return 0;
 }
