@@ -54,13 +54,12 @@ void handle_requests(int server_fd)
         std::cout << "Received request:\n"
                   << buffer << std::endl;
 
+        std::string body = "<h1>Hello world</h1>";
         std::string response =
             "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/plain\r\n"
-            "Content-Length: 12\r\n"
-            "\r\n"
-            "Hello world";
-
+            "Content-Type: text/html\r\n"
+            "Content-Length: " + std::to_string(body.length()) + "\r\n"
+            "\r\n" + body;
         write(client_fd, response.c_str(), response.length());
         close(client_fd);
     }

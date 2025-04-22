@@ -1,5 +1,5 @@
 CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98
+CXXFLAGS = -Wall -Wextra -Werror -std=c++11
 
 SRC = main.cpp ConfigParser.cpp ServerConfig.cpp
 OBJ = $(SRC:.cpp=.o)

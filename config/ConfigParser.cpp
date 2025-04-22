@@ -42,7 +42,7 @@ void ConfigParser::_parseServerBlock(std::ifstream &file)
         std::string directive;
         iss >> directive;
 
-        if (directive == "listen")
+        if (directive == "port")
         {
             std::string value;
             iss >> value;
