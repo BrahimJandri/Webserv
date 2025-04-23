@@ -1,7 +1,7 @@
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
-SRC = main.cpp
+SRC = main.cpp ./config/configParser.cpp ./config/serverConfig.cpp ./config/requestParser.cpp
 OBJ = $(SRC:.cpp=.o)
 
 all: Webserv

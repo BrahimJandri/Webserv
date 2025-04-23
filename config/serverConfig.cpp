@@ -1,4 +1,4 @@
-#include "ConfigParser.hpp"
+#include "parserHeader.hpp"
 
 int create_server_socket(const std::string &host, int port)
 {
@@ -36,6 +36,14 @@ int create_server_socket(const std::string &host, int port)
     return server_fd;
 }
 
+
+std::string to_string_c98(size_t val)
+{
+    std::ostringstream oss;
+    oss << val;
+    return oss.str();
+}
+
 void handle_requests(int server_fd)
 {
     while (true)
@@ -47,20 +55,34 @@ void handle_requests(int server_fd)
             continue;
         }
 
-        char buffer[1024];
+        char buffer[4096];
         std::memset(buffer, 0, sizeof(buffer));
-        read(client_fd, buffer, sizeof(buffer) - 1);
+        ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
+        if (bytes_read <= 0)
+        {
+            close(client_fd);
+            continue;
+        }
 
-        std::cout << "Received request:\n"
-                  << buffer << std::endl;
+        std::string raw_request(buffer);
+        HttpRequest req = parse_request(raw_request);
 
-        std::string body = "<h1>Hello world</h1>";
+        std::cout << "== New HTTP Request ==\n";
+        std::cout << req.method << " " << req.path << " " << req.http_version << std::endl;
+        for (std::map<std::string, std::string>::iterator it = req.headers.begin(); it != req.headers.end(); ++it)
+        {
+            std::cout << it->first << ": " << it->second << std::endl;
+        }
+
+        // Dummy response
+        std::string body = "<h1>Hello from Webserv</h1>";
         std::string response =
             "HTTP/1.1 200 OK\r\n"
             "Content-Type: text/html\r\n"
-            "Content-Length: " + std::to_string(body.length()) + "\r\n"
+            "Content-Length: " + to_string_c98(body.length()) + "\r\n"
             "\r\n" + body;
         write(client_fd, response.c_str(), response.length());
         close(client_fd);
     }
 }
+

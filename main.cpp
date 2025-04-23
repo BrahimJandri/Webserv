@@ -1,74 +1,38 @@
+#include "./config/parserHeader.hpp"
 #include <iostream>
-#include <cstring>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <stdio.h>
 
-#define PORT 8080
-
-int main()
+int main(int ac, char **av)
 {
-    int server_fd, client_fd;
-    struct sockaddr_in address;
-    int addrlen = sizeof(address);
-
-    // 1. Create socket
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd == 0)
+    if (ac == 2)
     {
-        perror("socket failed");
+        ConfigParser parser(av[1]);
+        if (!parser.parse())
+            return 1;
+
+        const std::vector<ServerConfig> &servers = parser.getServers();
+        
+        for (size_t i = 0; i < servers.size(); ++i)
+        {
+            int fd = create_server_socket(servers[i].host, servers[i].port);
+            if (fd != -1)
+            handle_requests(fd); // This blocks, so maybe do one for now
+        }
+        for (size_t i = 0; i < servers.size(); ++i)
+        {
+            std::cout << "Server " << i << " on " << servers[i].host << ":" << servers[i].port << std::endl;
+            std::cout << "  Server name: " << servers[i].server_name << std::endl;
+            for (size_t j = 0; j < servers[i].locations.size(); ++j)
+            {
+                std::cout << "    Location " << servers[i].locations[j].path << std::endl;
+                std::cout << "      Root: " << servers[i].locations[j].root << std::endl;
+                std::cout << "      Index: " << servers[i].locations[j].index << std::endl;
+            }
+        }
+    }
+    else
+    {
+        std::cerr << "Usage: " << av[0] << " <config_file.conf>" << std::endl;
         return 1;
     }
-
-    // 2. Bind to port
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
-
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
-    {
-        perror("bind failed");
-        return 1;
-    }
-
-    // 3. Start listening
-    if (listen(server_fd, 10) < 0)
-    {
-        perror("listen");
-        return 1;
-    }
-
-    std::cout << "🟢 Server listening on http://localhost:" << PORT << std::endl;
-
-    // 4. Accept one client connection
-    client_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
-    if (client_fd < 0)
-    {
-        perror("accept");
-        return 1;
-    }
-
-    // 5. Read the HTTP request
-    char buffer[4096] = {0};
-    read(client_fd, buffer, 4096);
-    std::cout << "📥 Received request:\n"
-              << buffer << std::endl;
-
-    // 6. Send back a simple HTTP response
-    const char *response =
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "<html><body><h1>Hello, Webserv!</h1></body></html>";
-
-    send(client_fd, response, strlen(response), 0);
-    std::cout << "📤 Response sent.\n";
-
-    // 7. Close connections
-    close(client_fd);
-    close(server_fd);
-
     return 0;
 }

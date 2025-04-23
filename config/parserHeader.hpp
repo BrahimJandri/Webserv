@@ -21,6 +21,13 @@ struct Location
     std::string index;
 };
 
+struct HttpRequest {
+    std::string method;
+    std::string path;
+    std::string http_version;
+    std::map<std::string, std::string> headers;
+};
+
 struct ServerConfig
 {
     std::string host;
@@ -47,3 +54,5 @@ private:
 
 int create_server_socket(const std::string &host, int port);
 void handle_requests(int server_fd);
+std::string to_string_c98(size_t val);
+HttpRequest parse_request(const std::string &raw_request);
