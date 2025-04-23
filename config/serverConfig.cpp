@@ -15,8 +15,8 @@ int create_server_socket(const std::string &host, int port)
     struct sockaddr_in addr;
     std::memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = inet_addr(host.c_str());
+    addr.sin_port = htons(port); // This function is used to convert the unsigned int from machine byte order to network byte order.
+    addr.sin_addr.s_addr = inet_addr(host.c_str()); //It is used when we don't want to bind our socket to any particular IP and instead make it listen to all the available IPs.
 
     if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
     {
