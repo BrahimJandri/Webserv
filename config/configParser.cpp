@@ -1,4 +1,4 @@
-#include "ConfigParser.hpp"
+#include "parserHeader.hpp"
 
 ConfigParser::ConfigParser(const std::string &file_path)
     : _file_path(file_path) {}
