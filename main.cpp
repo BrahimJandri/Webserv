@@ -7,7 +7,7 @@ int main(int ac, char **av)
     if (ac == 2)
     {
         ConfigParser parser(av[1]);
-        requestParser req;
+        requestParser req; // hada class fih parsed request
 
         if (!parser.parse())
             return 1;
