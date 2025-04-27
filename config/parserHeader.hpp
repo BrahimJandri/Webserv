@@ -13,6 +13,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdio.h>
+#include "requestParser.hpp"
 
 struct Location
 {
@@ -20,6 +21,7 @@ struct Location
     std::string root;
     std::string index;
 };
+
 
 struct ServerConfig
 {
@@ -46,4 +48,5 @@ private:
 };
 
 int create_server_socket(const std::string &host, int port);
-void handle_requests(int server_fd);
+void handle_requests(int server_fd, requestParser &req);
+std::string to_string_c98(size_t val);

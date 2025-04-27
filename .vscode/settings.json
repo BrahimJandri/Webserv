@@ -57,6 +57,10 @@
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "files.associations": {
+<<<<<<< HEAD
+=======
+    "cstdlib": "cpp",
+>>>>>>> origin/brahim
     "array": "cpp",
     "atomic": "cpp",
     "bit": "cpp",
@@ -72,7 +76,10 @@
     "cstddef": "cpp",
     "cstdint": "cpp",
     "cstdio": "cpp",
+<<<<<<< HEAD
     "cstdlib": "cpp",
+=======
+>>>>>>> origin/brahim
     "cstring": "cpp",
     "ctime": "cpp",
     "cwchar": "cpp",
@@ -116,6 +123,10 @@
     "cinttypes": "cpp",
     "typeinfo": "cpp",
     "variant": "cpp"
+<<<<<<< HEAD
   },
   "liveServer.settings.port": 5501
+=======
+  }
+>>>>>>> origin/brahim
 }
