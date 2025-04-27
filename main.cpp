@@ -28,6 +28,8 @@ int main(int ac, char **av)
                 std::cout << "      Index: " << servers[i].locations[j].index << std::endl;
             }
         }
+
+        
     }
     else
     {

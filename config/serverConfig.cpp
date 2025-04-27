@@ -1,4 +1,5 @@
 #include "parserHeader.hpp"
+#include "requestParser.hpp"
 
 int create_server_socket(const std::string &host, int port)
 {
@@ -15,8 +16,8 @@ int create_server_socket(const std::string &host, int port)
     struct sockaddr_in addr;
     std::memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(port); // This function is used to convert the unsigned int from machine byte order to network byte order.
-    addr.sin_addr.s_addr = inet_addr(host.c_str()); //It is used when we don't want to bind our socket to any particular IP and instead make it listen to all the available IPs.
+    addr.sin_port = htons(port);                    // This function is used to convert the unsigned int from machine byte order to network byte order.
+    addr.sin_addr.s_addr = inet_addr(host.c_str()); // It is used when we don't want to bind our socket to any particular IP and instead make it listen to all the available IPs.
 
     if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
     {
@@ -35,7 +36,6 @@ int create_server_socket(const std::string &host, int port)
     std::cout << "Listening on " << host << ":" << port << std::endl;
     return server_fd;
 }
-
 
 std::string to_string_c98(size_t val)
 {
@@ -65,24 +65,27 @@ void handle_requests(int server_fd)
         }
 
         std::string raw_request(buffer);
-        HttpRequest req = parse_request(raw_request);
+
+        requestParser parser;
+        parser.parseRequest(raw_request);
 
         std::cout << "== New HTTP Request ==\n";
-        std::cout << req.method << " " << req.path << " " << req.http_version << std::endl;
-        for (std::map<std::string, std::string>::iterator it = req.headers.begin(); it != req.headers.end(); ++it)
+        std::cout << parser.getMethod() << " " << parser.getPath() << " " << parser.getHttpVersion() << std::endl;
+        std::map<std::string, std::string>::const_iterator it;
+        for (it = parser.getHeaders().begin(); it != parser.getHeaders().end(); ++it)
         {
             std::cout << it->first << ": " << it->second << std::endl;
         }
 
-        // Dummy response
         std::string body = "<h1>Hello from Webserv</h1>";
         std::string response =
-            "HTTP/1.1 200 OK\r\n"
+            "HTTP/ 200 OK\r\n"
             "Content-Type: text/html\r\n"
-            "Content-Length: " + to_string_c98(body.length()) + "\r\n"
-            "\r\n" + body;
+            "Content-Length: " +
+            to_string_c98(body.length()) + "\r\n"
+                                           "\r\n" +
+            body;
         write(client_fd, response.c_str(), response.length());
         close(client_fd);
     }
 }
-
