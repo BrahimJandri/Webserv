@@ -22,7 +22,7 @@ void ConfigParser::_parseServerBlock(std::ifstream &file)
 {
     ServerConfig server;
     std::string line;
-    bool inside = false;
+    bool inside __attribute_maybe_unused__ = false ;
 
     while (std::getline(file, line))
     {
