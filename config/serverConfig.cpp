@@ -44,7 +44,7 @@ std::string to_string_c98(size_t val)
     return oss.str();
 }
 
-void handle_requests(int server_fd)
+void handle_requests(int server_fd, requestParser &req)
 {
     while (true)
     {
@@ -65,14 +65,12 @@ void handle_requests(int server_fd)
         }
 
         std::string raw_request(buffer);
-
-        requestParser parser;
-        parser.parseRequest(raw_request);
+        req.parseRequest(raw_request);
 
         std::cout << "== New HTTP Request ==\n";
-        std::cout << parser.getMethod() << " " << parser.getPath() << " " << parser.getHttpVersion() << std::endl;
+        std::cout << req.getMethod() << " " << req.getPath() << " " << req.getHttpVersion() << std::endl;
         std::map<std::string, std::string>::const_iterator it;
-        for (it = parser.getHeaders().begin(); it != parser.getHeaders().end(); ++it)
+        for (it = req.getHeaders().begin(); it != req.getHeaders().end(); ++it)
         {
             std::cout << it->first << ": " << it->second << std::endl;
         }
