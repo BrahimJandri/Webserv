@@ -1,23 +1,44 @@
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++11
 
-SRC = main.cpp ./config/configParser.cpp ./config/serverConfig.cpp ./config/requestParser.cpp
+# Source files
+SRC =	main.cpp					\
+		config/configParser.cpp		\
+		config/serverConfig.cpp		\
+		config/requestParser.cpp	\
+		Headers/WebservUtils.cpp
+
+# Object directory
 OBJ_DIR = objFiles
+
+# Object files with directory prefix
 OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.cpp=.o)))
+
+# Header files
+HEADERS =	Headers/AnsiColor.hpp		\
+			Headers/WebservUtils.hpp	\
+			config/parserHeader.hpp		\
+			config/requestParser.hpp
+
+# Include directories
+INCLUDES = -I. -I./Headers -I./config
+
+# Source directories for vpath
+VPATH = .:config:Headers
 
 all: $(OBJ_DIR) Webserv
 
+# Create object directory if it doesn't exist
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
-$(OBJ_DIR)/%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(OBJ_DIR)/%.o: ./config/%.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
+# Rule to link the executable
 Webserv: $(OBJ)
 	$(CXX) $(CXXFLAGS) -o Webserv $(OBJ)
+
+# Rules for compiling source files with header dependencies
+$(OBJ_DIR)/%.o: %.cpp $(HEADERS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
 	rm -f $(OBJ)
@@ -29,4 +50,4 @@ fclean: clean
 re: fclean all
 
 .SECONDARY:
-.PHONY: all clean fclean re $(OBJ_DIR)
+.PHONY: all clean fclean re
