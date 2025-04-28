@@ -14,19 +14,19 @@ private:
     std::string _response;        // Response to be sent
 
 public:
-    Client();
-    Client(int fd);
-    ~Client();
+	Client();
+	Client(int fd);
+	~Client();
 
-    int getFd() const;
-    bool isRequestComplete() const;
-    bool isResponseReady() const;
-    
-    void appendToBuffer(const std::string &data);
-    bool processRequest();
-    void prepareResponse();
-    std::string getResponse() const;
-    void clearResponse();
-    
-    const requestParser &getRequest() const;
+	int getFd() const;
+	bool isRequestComplete() const;
+	bool isResponseReady() const;
+
+	void appendToBuffer(const std::string &data);
+	bool processRequest();
+	void prepareResponse();
+	std::string getResponse() const;
+	void clearResponse();
+
+	const requestParser &getRequest() const;
 };
