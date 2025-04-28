@@ -2,11 +2,14 @@ CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++11
 
 # Source files
-SRC =	main.cpp					\
-		config/configParser.cpp		\
-		config/serverConfig.cpp		\
-		config/requestParser.cpp	\
-		Headers/WebservUtils.cpp
+SRC =	src/main.cpp \
+		src/Config/ConfigParser.cpp \
+		src/Server/Server.cpp \
+		src/Server/Client.cpp \
+		src/HTTP/Request.cpp \
+		src/HTTP/Response.cpp \
+		src/CGI/CGIHandler.cpp \
+		src/Utils/Logger.cpp
 
 # Object directory
 OBJ_DIR = objFiles
@@ -15,16 +18,19 @@ OBJ_DIR = objFiles
 OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.cpp=.o)))
 
 # Header files
-HEADERS =	Headers/AnsiColor.hpp		\
-			Headers/WebservUtils.hpp	\
-			config/parserHeader.hpp		\
-			config/requestParser.hpp
+HEADERS =	src/Config/ConfigParser.hpp \
+			src/Server/Server.hpp \
+			src/Server/Client.hpp \
+			src/HTTP/Request.hpp \
+			src/HTTP/Response.hpp \
+			src/CGI/CGIHandler.hpp \
+			src/Utils/Logger.hpp
 
 # Include directories
-INCLUDES = -I. -I./Headers -I./config
+INCLUDES = -I. -Isrc -Isrc/Config -Isrc/Server -Isrc/HTTP -Isrc/CGI -Isrc/Utils
 
 # Source directories for vpath
-VPATH = .:config:Headers
+VPATH = src:src/Config:src/Server:src/HTTP:src/CGI:src/Utils
 
 all: $(OBJ_DIR) Webserv
 

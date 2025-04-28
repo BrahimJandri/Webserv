@@ -13,7 +13,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdio.h>
-#include "requestParser.hpp"
+#include "../HTTP/Request.hpp"
 
 struct Location
 {
