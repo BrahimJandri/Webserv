@@ -6,12 +6,12 @@
 
 class Client {
 private:
-    int _fd;                      // Client socket file descriptor
-    std::string _buffer;          // Buffer for incoming data
-    bool _request_complete;       // Flag to indicate if the request is complete
-    bool _response_ready;         // Flag to indicate if the response is ready to be sent
-    requestParser _request;       // Parsed request object
-    std::string _response;        // Response to be sent
+	int _fd;						// Client socket file descriptor
+	std::string _buffer;			// Buffer for incoming data
+	bool _request_complete;			// Flag to indicate if the request is complete
+	bool _response_ready;			// Flag to indicate if the response is ready to be sent
+	requestParser _request;			// Parsed request object
+	std::string _response;			// Response to be sent
 
 public:
 	Client();
