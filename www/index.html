@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>i3tachn</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #fff;
+      color: #202124;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo {
+      font-size: 80px;
+      font-weight: bold;
+      color: #4285f4;
+      font-family: 'Product Sans', Arial, sans-serif;
+      margin-bottom: 20px;
+    }
+
+    .logo span:nth-child(2) { color: #ea4335; }
+    .logo span:nth-child(3) { color: #fbbc05; }
+    .logo span:nth-child(4) { color: #34a853; }
+    .logo span:nth-child(5) { color: #ea4335; }
+    .logo span:nth-child(6) { color: #fbbc05; }
+
+    .search-box {
+      width: 90%;
+      max-width: 600px;
+      display: flex;
+      border: 1px solid #dfe1e5;
+      border-radius: 24px;
+      padding: 10px 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .search-box input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 16px;
+    }
+
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .buttons button {
+      background: #f8f9fa;
+      border: 1px solid #f8f9fa;
+      border-radius: 4px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .buttons button:hover {
+      border: 1px solid #c6c6c6;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    }
+
+    footer {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      text-align: center;
+      padding: 20px 0;
+      font-size: 14px;
+      color: #70757a;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <span>i</span><span>3</span><span>t</span><span>a</span><span>c</span><span>h</span><span>n</span>
+  </div>
+  <div class="search-box">
+    <input type="text" placeholder="Search i3tachn or type a URL" />
+  </div>
+  <div class="buttons">
+    <button>i3tachn Search</button>
+    <button>I'm Feeling Lucky</button>
+  </div>
+  <footer>
+    © 2025 i3tachn
+  </footer>
+</body>
+</html>
