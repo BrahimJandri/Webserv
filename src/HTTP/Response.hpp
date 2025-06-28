@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <vector> // Potentially useful for internal use, though not strictly required for the basics here
+#include "Client.hpp"
 
 // Forward declaration for C++98 compatibility if not defined globally.
 // This function might be needed if you convert numbers to strings within Response methods.
@@ -10,8 +11,8 @@ std::string to_string_c98(size_t val); // Assuming this utility function is avai
 
 class Response {
 private:
-    int _statusCode;
-    std::string _statusText;
+    int statusCode;
+	std::string statusMessage;
     std::map<std::string, std::string> _headers;
     std::string _body;
     std::string _httpVersion; // Typically "HTTP/1.1"
@@ -22,8 +23,7 @@ public:
     ~Response();
 
     // Setters
-    void setStatusCode(int code);
-    void setStatusText(const std::string& text);
+  	void setStatus(int code, const std::string& message);
     void addHeader(const std::string& key, const std::string& value);
     void setBody(const std::string& body);
     void setHttpVersion(const std::string& version);

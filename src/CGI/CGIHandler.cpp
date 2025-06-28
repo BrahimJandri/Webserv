@@ -1,26 +1,4 @@
 #include "CGIHandler.hpp"
-#include "../Utils/Logger.hpp" // Assuming you have a Logger for debug/error output
-                               // Make sure your Logger defines macros like LOG_ERROR if used
-
-#include <iostream>   // For std::cerr, std::cout
-#include <unistd.h>   // For fork, execve, pipe, close, read, write, dup2
-#include <sys/wait.h> // For waitpid
-#include <vector>     // For std::vector
-#include <cstring>    // For strdup, strlen, strerror
-#include <sstream>    // For std::istringstream, std::ostringstream (for to_string_c98)
-#include <cstdio>     // For perror
-#include <cstdlib>    // For exit, EXIT_FAILURE, getenv
-#include <cctype>     // For std::toupper (C++98)
-#include <errno.h>    // For errno
-
-// to_string_c98 function (if not already defined in a common utility header and included)
-// This is a C++98 compliant way to convert size_t to std::string.
-std::string to_string_c98(size_t val)
-{
-    std::ostringstream oss;
-    oss << val;
-    return oss.str();
-}
 
 // Constructor
 CGIHandler::CGIHandler(const std::string &cgi_bin_path) : _cgi_bin_path(cgi_bin_path)
@@ -97,29 +75,29 @@ std::string CGIHandler::readFd(int fd)
 
 // Helper for error response creation (using Response class)
 // Assumes Response class has appropriate setters and addHeader methods.
-Response CGIHandler::createErrorResponse(int status_code, const std::string &message)
-{
-    Response response;
-    response.setStatusCode(status_code);
-    std::string status_text;
-    if (status_code == 404)
-        status_text = "Not Found";
-    else if (status_code == 500)
-        status_text = "Internal Server Error";
-    else if (status_code == 502)
-        status_text = "Bad Gateway"; // Specific for CGI issues
-    else
-        status_text = "Error"; // Default fallback
-    response.setStatusText(status_text);
+// Response CGIHandler::createErrorResponse(int status_code, const std::string &message)
+// {
+//     Response response;
+//     response.setStatusCode(status_code);
+//     std::string status_text;
+//     if (status_code == 404)
+//         status_text = "Not Found";
+//     else if (status_code == 500)
+//         status_text = "Internal Server Error";
+//     else if (status_code == 502)
+//         status_text = "Bad Gateway"; // Specific for CGI issues
+//     else
+//         status_text = "Error"; // Default fallback
+//     response.setStatusText(status_text);
 
-    // Provide a simple HTML body for the error
-    std::string error_body = "<!DOCTYPE html><html><head><title>Error " + to_string_c98(status_code) + "</title></head><body><h1>Error " + to_string_c98(status_code) + " - " + status_text + "</h1><p>" + message + "</p></body></html>";
-    response.setBody(error_body);
-    response.addHeader("Content-Type", "text/html");
-    response.addHeader("Content-Length", to_string_c98(error_body.length()));
-    response.addHeader("Connection", "close"); // Always close after error
-    return response;
-}
+//     // Provide a simple HTML body for the error
+//     std::string error_body = "<!DOCTYPE html><html><head><title>Error " + to_string_c98(status_code) + "</title></head><body><h1>Error " + to_string_c98(status_code) + " - " + status_text + "</h1><p>" + message + "</p></body></html>";
+//     response.setBody(error_body);
+//     response.addHeader("Content-Type", "text/html");
+//     response.addHeader("Content-Length", to_string_c98(error_body.length()));
+//     response.addHeader("Connection", "close"); // Always close after error
+//     return response;
+// }
 
 // Set CGI environment variables
 void CGIHandler::setEnv(const requestParser &request, const std::string &script_path, const std::string &server_name, int server_port)
@@ -136,7 +114,7 @@ void CGIHandler::setEnv(const requestParser &request, const std::string &script_
     // script_path here is the *requested URI* path, e.g., "/cgi-bin/myscript.pl/extra/info"
     // We need to determine which part is the actual script, and which is PATH_INFO
     // This logic might need refinement based on your config's specific CGI mappings.
-    size_t script_name_end_pos = script_path.length(); // Default: entire path is script name
+    // size_t script_name_end_pos = script_path.length(); // Default: entire path is script name
     // A more robust way might be to check if the path (or part of it) exists as an executable file
     // For now, let's assume the actual script file ends before the first '/' after the cgi-bin part
     // For example, if script_path is "/cgi-bin/script.pl/extra/path", we assume "script.pl" is the script.
@@ -243,7 +221,7 @@ Response CGIHandler::execute(const requestParser &request, const std::string &sc
     {
         perror("pipe (cgi_in_pipe) failed");
         // LOG_ERROR("CGI: pipe creation for stdin failed: " << strerror(errno));
-        return createErrorResponse(500, "CGI internal error: stdin pipe creation failed.");
+        // return createErrorResponse(500, "CGI internal error: stdin pipe creation failed.");
     }
     if (pipe(cgi_out_pipe) == -1)
     {
@@ -251,7 +229,7 @@ Response CGIHandler::execute(const requestParser &request, const std::string &sc
         // LOG_ERROR("CGI: pipe creation for stdout failed: " << strerror(errno));
         close(cgi_in_pipe[0]);
         close(cgi_in_pipe[1]); // Clean up first pipe
-        return createErrorResponse(500, "CGI internal error: stdout pipe creation failed.");
+        // return createErrorResponse(500, "CGI internal error: stdout pipe creation failed.");
     }
 
     pid_t pid = fork();
@@ -264,7 +242,7 @@ Response CGIHandler::execute(const requestParser &request, const std::string &sc
         close(cgi_in_pipe[1]);
         close(cgi_out_pipe[0]);
         close(cgi_out_pipe[1]);
-        return createErrorResponse(500, "CGI internal error: fork failed.");
+        // return createErrorResponse(500, "CGI internal error: fork failed.");
     }
     else if (pid == 0) // Child process (CGI script)
     {
@@ -367,7 +345,7 @@ Response CGIHandler::execute(const requestParser &request, const std::string &sc
                     // LOG_ERROR("CGI: write to stdin pipe failed: " << strerror(errno));
                     close(cgi_in_pipe[1]);
                     close(cgi_out_pipe[0]);
-                    return createErrorResponse(500, "CGI internal error: failed to write request body.");
+                    // return createErrorResponse(500, "CGI internal error: failed to write request body.");
                 }
                 total_written += bytes_written;
             }
@@ -387,7 +365,7 @@ Response CGIHandler::execute(const requestParser &request, const std::string &sc
         {
             perror("waitpid failed");
             // LOG_ERROR("CGI: waitpid failed: " << strerror(errno));
-            return createErrorResponse(500, "CGI internal error: waitpid failed.");
+            // return createErrorResponse(500, "CGI internal error: waitpid failed.");
         }
 
         if (WIFEXITED(status))
@@ -395,19 +373,19 @@ Response CGIHandler::execute(const requestParser &request, const std::string &sc
             if (WEXITSTATUS(status) != 0)
             {
                 // LOG_ERROR("CGI script exited with non-zero status: " << WEXITSTATUS(status));
-                return createErrorResponse(502, "CGI script exited with an error (status " + to_string_c98(static_cast<size_t>(WEXITSTATUS(status))) + ").");
+                // return createErrorResponse(502, "CGI script exited with an error (status " + to_string_c98(static_cast<size_t>(WEXITSTATUS(status))) + ").");
             }
         }
         else if (WIFSIGNALED(status))
         {
             // LOG_ERROR("CGI script terminated by signal: " << WTERMSIG(status));
-            return createErrorResponse(502, "CGI script terminated by signal " + to_string_c98(static_cast<size_t>(WTERMSIG(status))) + ".");
+            // return createErrorResponse(502, "CGI script terminated by signal " + to_string_c98(static_cast<size_t>(WTERMSIG(status))) + ".");
         }
         else
         {
             // Child process did not exit or terminate by signal (e.g., still running, stopped)
             // This scenario should ideally not happen if waitpid successfully waited for exit/signal
-            return createErrorResponse(502, "CGI script did not terminate cleanly.");
+            // return createErrorResponse(502, "CGI script did not terminate cleanly.");
         }
 
         // Parse CGI output to construct HTTP response
@@ -416,15 +394,14 @@ Response CGIHandler::execute(const requestParser &request, const std::string &sc
         if (header_end == std::string::npos)
         {
             // LOG_ERROR("CGI output missing header-body separator '\\r\\n\\r\\n'");
-            return createErrorResponse(502, "CGI script produced malformed output (missing '\\r\\n\\r\\n').");
+            // return createErrorResponse(502, "CGI script produced malformed output (missing '\\r\\n\\r\\n').");
         }
 
         std::string cgi_headers_str = cgi_output.substr(0, header_end);
         std::string cgi_body = cgi_output.substr(header_end + 4);
 
         Response response;
-        response.setStatusCode(200); // Default to 200 OK unless CGI headers specify otherwise
-        response.setStatusText("OK");
+        response.setStatus(200, "OK"); // Default status, can be overridden by CGI headers
 
         // Parse CGI headers
         std::istringstream iss_cgi_headers(cgi_headers_str);
@@ -472,8 +449,7 @@ Response CGIHandler::execute(const requestParser &request, const std::string &sc
             {
                 cgi_status_text = cgi_status_text.substr(1); // Remove leading space
             }
-            response.setStatusCode(cgi_status_code);
-            response.setStatusText(cgi_status_text);
+            response.setStatus(cgi_status_code, cgi_status_text); // Set status code and text
         }
 
         response.setBody(cgi_body);
@@ -488,4 +464,5 @@ Response CGIHandler::execute(const requestParser &request, const std::string &sc
 
         return response;
     }
+    return Response(); // Should never reach here, but return empty Response to satisfy compiler
 }

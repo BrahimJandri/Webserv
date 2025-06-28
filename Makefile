@@ -1,5 +1,5 @@
 CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98
+CXXFLAGS = -Wall -Wextra -Werror -std=c++11
 
 # Source files
 SRC =	src/main.cpp \
@@ -9,6 +9,7 @@ SRC =	src/main.cpp \
 		src/HTTP/Request.cpp \
 		src/HTTP/Response.cpp \
 		src/CGI/CGIHandler.cpp \
+		src/HTTP/ResponseBuilder.cpp \
 		src/Utils/Logger.cpp
 
 # Object directory

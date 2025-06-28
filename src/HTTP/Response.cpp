@@ -2,32 +2,21 @@
 #include <sstream> // For std::ostringstream and to_string_c98
 #include <algorithm> // For general utility if needed, not strictly for current methods
 
-// to_string_c98 function (if not already defined in a common utility header and included)
-// This is a C++98 compliant way to convert size_t to std::string.
-std::string to_string_c98(size_t val) {
-    std::ostringstream oss;
-    oss << val;
-    return oss.str();
-}
 
 // Constructor
-Response::Response() : _statusCode(200), _statusText("OK"), _httpVersion("HTTP/1.1") {
-    // Default constructor initializes common values
+Response::Response() : statusCode(200), statusMessage("OK") {
+	addHeader("Server", "Webserv/1.0");
+	addHeader("Connection", "close");
 }
-
 // Destructor
 Response::~Response() {
     // No dynamic memory allocated directly within Response object that needs explicit deletion,
     // as std::string and std::map handle their own memory.
 }
 
-// Setters
-void Response::setStatusCode(int code) {
-    _statusCode = code;
-}
-
-void Response::setStatusText(const std::string& text) {
-    _statusText = text;
+void Response::setStatus(int code, const std::string& message) {
+	statusCode = code;
+	statusMessage = message;
 }
 
 void Response::addHeader(const std::string& key, const std::string& value) {
@@ -44,11 +33,11 @@ void Response::setHttpVersion(const std::string& version) {
 
 // Getters
 int Response::getStatusCode() const {
-    return _statusCode;
+    return statusCode;
 }
 
 const std::string& Response::getStatusText() const {
-    return _statusText;
+    return statusMessage;
 }
 
 const std::map<std::string, std::string>& Response::getHeaders() const {
@@ -68,7 +57,7 @@ std::string Response::toString() const {
     std::ostringstream oss;
 
     // Status Line: HTTP-Version Status-Code Reason-Phrase CR LF
-    oss << _httpVersion << " " << _statusCode << " " << _statusText << "\r\n";
+    oss << _httpVersion << " " << statusCode << " " << statusMessage << "\r\n";
 
     // Headers: Header-Name: Header-Value CR LF
     for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it) {

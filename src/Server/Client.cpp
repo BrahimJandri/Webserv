@@ -4,7 +4,7 @@
 #include <sstream>
 
 // Helper function for creating HTTP responses
-std::string to_string_client(size_t val) {
+std::string Client::to_string_client(size_t val) {
     std::ostringstream oss;
     oss << val;
     return oss.str();

@@ -4,6 +4,7 @@
 #include "Utils/AnsiColor.hpp"
 #include "Server/Server.hpp"
 #include <iostream>
+#include <fcntl.h>
 
 int start_server(const std::string &config_path)
 {
@@ -44,4 +45,3 @@ int main(int ac, char **av)
 		return 1;
 	}
 }
-

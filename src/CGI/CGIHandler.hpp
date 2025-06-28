@@ -1,14 +1,23 @@
 #pragma once
 
+#include "../Utils/Logger.hpp" // Assuming you have a Logger for debug/error output
+                               // Make sure your Logger defines macros like LOG_ERROR if used
 #include <string>
 #include <map>
 #include <vector>
 #include "../HTTP/Request.hpp"  // For requestParser
 #include "../HTTP/Response.hpp" // For Response object
+#include <iostream>   // For std::cerr, std::cout
+#include <unistd.h>   // For fork, execve, pipe, close, read, write, dup2
+#include <sys/wait.h> // For waitpid
+#include <vector>     // For std::vector
+#include <cstring>    // For strdup, strlen, strerror
+#include <sstream>    // For std::istringstream, std::ostringstream (for to_string_c98)
+#include <cstdio>     // For perror
+#include <cstdlib>    // For exit, EXIT_FAILURE, getenv
+#include <cctype>     // For std::toupper (C++98)
+#include <errno.h>    // For errno
 
-// Forward declaration for C++98 compatibility if not defined globally.
-// This function is defined in CGIHandler.cpp and used internally by CGIHandler.
-std::string to_string_c98(size_t val);
 
 class CGIHandler
 {
@@ -71,5 +80,5 @@ private:
      * @param message A descriptive error message for the response body.
      * @return A Response object representing the error.
      */
-    Response createErrorResponse(int status_code, const std::string &message);
+    // Response createErrorResponse(int status_code, const std::string &message);
 };
