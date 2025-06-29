@@ -206,7 +206,7 @@ void handle_requests(int server_fd, requestParser &req)
 		std::cout << "Body:\n"
 				  << req.getBody() << std::endl; // Assuming getBody() exists and returns the request body
 
-		std::string docRoot = "/home/user/workspace/brahim/www";
+		std::string docRoot = "/home/bjandri/Desktop/Webserv/www";
 		Response response;
 		std::string method = req.getMethod();
 
