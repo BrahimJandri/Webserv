@@ -32,7 +32,7 @@ public:
     void handleClientRead(int client_fd);
     void handleClientWrite(int client_fd);
     void handleClientRequest(int client_fd, requestParser &req);
-    void sendResponse(int client_fd, const std::string &response);
+    static void sendResponse(int client_fd, const std::string &response);
     void closeClientConnection(int client_fd);
 };
 

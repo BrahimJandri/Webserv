@@ -4,7 +4,7 @@
 
 
 // Constructor
-Response::Response() : statusCode(200), statusMessage("OK") {
+Response::Response() : statusCode(200), statusMessage("OK"), _httpVersion("HTTP/1.1") {
 	addHeader("Server", "Webserv/1.0");
 	addHeader("Connection", "close");
 }
