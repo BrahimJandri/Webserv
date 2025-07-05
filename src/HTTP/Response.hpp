@@ -4,6 +4,9 @@
 #include <map>
 #include <vector> // Potentially useful for internal use, though not strictly required for the basics here
 #include "Client.hpp"
+#include "CGIHandler.hpp" // Include the CGI handler for handling CGI requests
+#include "Request.hpp" // Include the request parser to handle incoming requests
+
 
 // Forward declaration for C++98 compatibility if not defined globally.
 // This function might be needed if you convert numbers to strings within Response methods.
@@ -16,6 +19,8 @@ private:
     std::map<std::string, std::string> _headers;
     std::string _body;
     std::string _httpVersion; // Typically "HTTP/1.1"
+    CGIHandler cgiHandler;
+
 
 public:
     // Constructor and Destructor
@@ -35,9 +40,6 @@ public:
     const std::string& getBody() const;
     const std::string& getHttpVersion() const;
 
-    /**
-     * @brief Assembles the complete HTTP response string (status line, headers, body).
-     * @return The complete HTTP response as a single string.
-     */
+    void handleCGI(const requestParser &request);
     std::string toString() const;
 };

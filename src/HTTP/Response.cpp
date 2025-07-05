@@ -78,3 +78,69 @@ std::string Response::toString() const {
 
     return oss.str();
 }
+
+
+void Response::handleCGI(const requestParser &request)
+{
+    std::string reqPath = request.getPath(); // e.g. "/cgi-bin/convert.py"
+    std::string root = "/home/bjandri/Desktop/webserb/www";
+    std::string scriptPath = root + reqPath; // becomes /home/bjandri/Desktop/cgi/www/cgi-bin/convert.py
+
+
+    std::map<std::string, std::string> env = CGIHandler::prepareCGIEnv(request);
+    try
+    {
+        std::string cgiOutput = cgiHandler.execute(scriptPath, request.getMethod(), request.getBody(), env);
+
+        // Separate headers and body from CGI output
+        size_t pos = cgiOutput.find("\r\n\r\n");
+        if (pos == std::string::npos)
+            pos = cgiOutput.find("\n\n");
+
+        if (pos != std::string::npos)
+        {
+            std::string headerPart = cgiOutput.substr(0, pos);
+            std::string bodyPart = cgiOutput.substr(pos + 4);
+
+            // parse headers from CGI output
+            std::istringstream headerStream(headerPart);
+            std::string line;
+            setStatus(200, "OK"); // default status
+
+            while (std::getline(headerStream, line))
+            {
+                if (line.empty()) break;
+                size_t colon = line.find(':');
+                if (colon != std::string::npos)
+                {
+                    std::string key = line.substr(0, colon);
+                    std::string value = line.substr(colon + 1);
+                    // trim spaces
+                    key.erase(key.find_last_not_of(" \t\r\n") + 1);
+                    value.erase(0, value.find_first_not_of(" \t\r\n"));
+                    value.erase(value.find_last_not_of(" \t\r\n") + 1);
+                    addHeader(key, value);
+                }
+            }
+
+            setBody(bodyPart);
+            addHeader("Content-Length", std::to_string(bodyPart.size()));
+        }
+        else
+        {
+            setStatus(200, "OK");
+            setBody(cgiOutput);
+            addHeader("Content-Length", std::to_string(cgiOutput.size()));
+            addHeader("Content-Type", "text/html");
+        }
+    }
+    catch (const std::exception &e)
+    {
+        setStatus(500, "Internal Server Error");
+        std::string err = "CGI Error: ";
+        err += e.what();
+        setBody(err);
+        addHeader("Content-Type", "text/plain");
+        addHeader("Content-Length", std::to_string(err.size()));
+    }
+}

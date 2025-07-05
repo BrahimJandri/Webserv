@@ -176,7 +176,6 @@ void handle_requests(int server_fd, requestParser &req)
 		if (client_fd < 0)
 		{
 			perror("accept");
-			// LOG_ERROR("accept failed"); // If you have a Logger
 			continue;
 		}
 
@@ -185,40 +184,56 @@ void handle_requests(int server_fd, requestParser &req)
 		ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
 		if (bytes_read <= 0)
 		{
-			// Read error or client disconnected
 			close(client_fd);
 			continue;
 		}
 
 		std::string raw_request(buffer);
-		req.parseRequest(raw_request); // Assuming parseRequest handles all parsing (method, path, headers, body)
+		req.parseRequest(raw_request);
 
 		std::cout << "== New HTTP Request ==\n";
 		std::cout << "Method: " << req.getMethod() << "\n";
 		std::cout << "Path: " << req.getPath() << "\n";
 		std::cout << "HTTP Version: " << req.getHttpVersion() << std::endl;
 		std::cout << "Headers:\n";
-		std::map<std::string, std::string>::const_iterator it;
-		for (it = req.getHeaders().begin(); it != req.getHeaders().end(); ++it)
+		for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin(); it != req.getHeaders().end(); ++it)
 		{
 			std::cout << "  " << it->first << ": " << it->second << std::endl;
 		}
 		std::cout << "Body:\n"
-				  << req.getBody() << std::endl; // Assuming getBody() exists and returns the request body
+				  << req.getBody() << std::endl;
 
-		std::string docRoot = "/home/bjandri/Desktop/Webserv/www";
-		Response response;
+		std::string docRoot = "/home/bjandri/Desktop/webserb/www";
 		std::string method = req.getMethod();
+		std::string path = req.getPath();
 
-		if (method == "GET")
+		Response response;
+
+		// === ✅ Handle CGI if path contains "/cgi-bin/"
+		if ((method == "GET" || method == "POST") && path.find("/cgi-bin/") != std::string::npos)
+		{
+			std::cout << "Handling CGI request for path: " << std::endl;
+			response.handleCGI(req);
+		}
+		else if (method == "GET")
+		{
 			response = ResponseBuilder::buildGetResponse(req, docRoot);
+		}
 		// else if (method == "POST")
+		// {
 		// 	response = ResponseBuilder::buildPostResponse(req, docRoot);
+		// }
 		else if (method == "DELETE")
+		{
 			response = ResponseBuilder::buildDeleteResponse(req, docRoot);
+		}
 		else
+		{
 			response = ResponseBuilder::buildErrorResponse(405, "Method Not Allowed");
+		}
+
 		Server::sendResponse(client_fd, response.toString());
+		close(client_fd); // Don't forget to close the client socket
 	}
 }
 
@@ -415,8 +430,9 @@ void Server::sendResponse(int client_fd, const std::string &response)
 	// Log the response being sent
 	std::cout << "\n== HTTP Response ==\n";
 	std::cout << response << std::endl;
-	std::cout << "==================\n" << std::endl;
-	
+	std::cout << "==================\n"
+			  << std::endl;
+
 	ssize_t bytes_written = write(client_fd, response.c_str(), response.length());
 	if (bytes_written < 0)
 		perror("write");

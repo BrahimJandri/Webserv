@@ -2,6 +2,7 @@
 
 #include <string>
 #include "../HTTP/Request.hpp"
+#include "../HTTP/Response.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
