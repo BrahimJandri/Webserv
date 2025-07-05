@@ -203,7 +203,7 @@ void handle_requests(int server_fd, requestParser &req)
 		std::cout << "Body:\n"
 				  << req.getBody() << std::endl;
 
-		std::string docRoot = "/home/bjandri/Desktop/webserb/www";
+		std::string docRoot = "/home/user/workspace/brahim/www";
 		std::string method = req.getMethod();
 		std::string path = req.getPath();
 
