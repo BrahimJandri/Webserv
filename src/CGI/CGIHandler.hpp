@@ -30,4 +30,5 @@ public:
 private:
     char **buildEnvArray(const std::map<std::string, std::string> &envVars);
     void freeEnvArray(char **env);
+    std::string getInterpreterForScript(const std::string &scriptPath);
 };

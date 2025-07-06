@@ -84,23 +84,33 @@ void Response::handleCGI(const requestParser &request)
 {
     std::string reqPath = request.getPath(); // e.g. "/cgi-bin/convert.py"
     std::string root = "/home/bjandri/Desktop/webserb/www";
-    std::string scriptPath = root + reqPath; // becomes /home/bjandri/Desktop/cgi/www/cgi-bin/convert.py
-
+    std::string scriptPath = root + reqPath; // becomes /home/bjandri/Desktop/webserb/www/cgi-bin/convert.py
 
     std::map<std::string, std::string> env = CGIHandler::prepareCGIEnv(request);
     try
     {
         std::string cgiOutput = cgiHandler.execute(scriptPath, request.getMethod(), request.getBody(), env);
 
-        // Separate headers and body from CGI output
+        // --- FIX START ---
+        // Find the position of the separator and determine its length
         size_t pos = cgiOutput.find("\r\n\r\n");
+        size_t separator_len = 4; // Length of "\r\n\r\n"
         if (pos == std::string::npos)
+        {
             pos = cgiOutput.find("\n\n");
+            separator_len = 2; // Length of "\n\n"
+        }
+        // --- FIX END ---
 
+        // If we found the header-body separator, split the output
         if (pos != std::string::npos)
         {
             std::string headerPart = cgiOutput.substr(0, pos);
-            std::string bodyPart = cgiOutput.substr(pos + 4);
+            
+            // --- FIX START ---
+            // Correctly extract the body part, which is everything AFTER the separator.
+            std::string bodyPart = cgiOutput.substr(pos + separator_len);
+            // --- FIX END ---
 
             // parse headers from CGI output
             std::istringstream headerStream(headerPart);
@@ -124,10 +134,16 @@ void Response::handleCGI(const requestParser &request)
             }
 
             setBody(bodyPart);
+            // It's good practice to set the content length from the actual body size.
+            // Note: Only set Content-Type if not already provided by the CGI script.
+            if (this->_headers.find("Content-Type") == this->_headers.end()) {
+                addHeader("Content-Type", "text/html");
+            }
             addHeader("Content-Length", std::to_string(bodyPart.size()));
         }
         else
         {
+            // This handles the case where the CGI script returns only a body (non-parsed headers)
             setStatus(200, "OK");
             setBody(cgiOutput);
             addHeader("Content-Length", std::to_string(cgiOutput.size()));
@@ -140,7 +156,7 @@ void Response::handleCGI(const requestParser &request)
         std::string err = "CGI Error: ";
         err += e.what();
         setBody(err);
-        addHeader("Content-Type", "text/plain");
+        addHeader("Content-Type", "text/html");
         addHeader("Content-Length", std::to_string(err.size()));
     }
 }

@@ -1,15 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Ask Gemini</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webserv Advanced Test Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Ask Gemini API (via CGI Bash Script)</h1>
-  <form action="/cgi-bin/gemini.sh" method="post">
-    <label for="prompt">Your Question:</label><br>
-    <textarea name="prompt" id="prompt" rows="5" cols="60" required></textarea><br><br>
-    <button type="submit">Ask</button>
-  </form>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto max-w-4xl p-4 sm:p-8">
+
+        <header class="text-center mb-10">
+            <h1 class="text-4xl sm:text-5xl font-bold text-gray-900">Webserv Advanced Test Suite 🚀</h1>
+            <p class="mt-2 text-lg text-gray-600">A comprehensive page to test your server's features.</p>
+        </header>
+
+        <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <h2 class="text-2xl font-bold border-b pb-2 mb-4">GET Method</h2>
+            <ul class="list-disc list-inside space-y-2 mb-4">
+                <li><a href="/non_existent_page.html" class="text-blue-600 hover:underline">Test a non-existent file (404 Not Found)</a></li>
+                <li><a href="/uploads/" class="text-blue-600 hover:underline">Test Directory Listing (for /uploads/)</a></li>
+            </ul>
+            <p class="font-semibold">Image serving test:</p>
+            <img src="https://placekitten.com/g/500/200" alt="Test Kitten" class="mt-2 rounded-lg shadow-md">
+        </section>
+
+        <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <h2 class="text-2xl font-bold border-b pb-2 mb-4">CGI Script Testing</h2>
+            
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold mb-2">CGI with GET</h3>
+                <p class="mb-3">These links execute different CGI scripts to display server environment variables.</p>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <a href="/cgi-bin/info.py" class="bg-green-500 text-white text-center font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Python Info</a>
+                    <a href="/cgi-bin/info.php" class="bg-indigo-500 text-white text-center font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 transition-colors">PHP Info</a>
+                    <a href="/cgi-bin/info.sh" class="bg-gray-700 text-white text-center font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition-colors">Shell Info</a>
+                    <a href="/cgi-bin/info.js" class="bg-yellow-500 text-white text-center font-bold py-2 px-4 rounded-lg hover:bg-yellow-600 transition-colors">Node.js Info</a>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xl font-semibold mb-2">CGI with POST</h3>
+                <p class="mb-3">Submit this form to send data to the selected CGI script.</p>
+                <form id="cgiPostForm" action="/cgi-bin/handler.py" method="post">
+                    <div class="mb-4">
+                        <label for="cgi-script" class="block font-medium mb-1">Target Script:</label>
+                        <select id="cgi-script" name="cgi-script" class="w-full p-2 border border-gray-300 rounded-lg">
+                            <option value="/cgi-bin/handler.py">Python (handler.py)</option>
+                            <option value="/cgi-bin/handler.php">PHP (handler.php)</option>
+                            <option value="/cgi-bin/handler.sh">Shell (handler.sh)</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="name" class="block font-medium mb-1">Your Name:</label>
+                        <input type="text" id="name" name="name" required class="w-full p-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">Submit POST Request</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <h2 class="text-2xl font-bold border-b pb-2 mb-4">File Upload (POST)</h2>
+            <p class="mb-3">Select a file to upload. Your server should be configured to save it in the <code>/uploads/</code> directory.</p>
+            <form action="/uploads/" method="post" enctype="multipart/form-data">
+                <input type="file" name="fileToUpload" id="fileToUpload" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                <button type="submit" class="mt-4 w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">Upload File</button>
+            </form>
+        </section>
+
+        <section class="bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-bold border-b pb-2 mb-4">DELETE Method</h2>
+            <p class="mb-3">Enter the path of a resource to delete (e.g., <code>/uploads/my_test_file.txt</code>) and click the button.</p>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <input type="text" id="deleteResource" placeholder="/uploads/file.txt" class="flex-grow p-2 border border-gray-300 rounded-lg">
+                <button id="deleteButton" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">Delete Resource</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Change form action based on CGI script selection
+        document.getElementById('cgi-script').addEventListener('change', (e) => {
+            document.getElementById('cgiPostForm').action = e.target.value;
+        });
+
+        // Handle DELETE request
+        document.getElementById('deleteButton').addEventListener('click', () => {
+            const resource = document.getElementById('deleteResource').value;
+            if (!resource) {
+                alert('Please enter the path of the resource to delete.');
+                return;
+            }
+            fetch(resource, {
+                method: 'DELETE'
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert(`DELETE request sent to ${resource}\n\nServer response:\n${data || '(No content)'}`);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(`An error occurred while sending DELETE to ${resource}. Check the console.`);
+            });
+        });
+    </script>
 </body>
 </html>
