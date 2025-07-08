@@ -36,3 +36,4 @@ std::string CookieManager::trim(const std::string &str)
         return "";
     return str.substr(start, end - start + 1);
 }
+

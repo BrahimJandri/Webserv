@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <Client.hpp>
 #include <sys/epoll.h>
+#include "../CGI/CookieManager.hpp"
 
 class Server
 {

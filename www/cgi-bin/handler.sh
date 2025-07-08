@@ -4,13 +4,19 @@ echo ""
 echo "<html><body><h1>Shell POST Handler</h1>"
 
 if [ "$REQUEST_METHOD" = "POST" ]; then
-    # Read the POST data from stdin
-    read -r POST_STRING
-    # A simple way to parse URL-encoded form data
-    NAME=$(echo "$POST_STRING" | sed 's/&/ /g' | sed 's/name=//g' | sed 's/+/ /g')
-    echo "<p>Hello, <strong>$NAME</strong>!</p>"
+    # Read the full POST body based on Content-Length
+    read -n "$CONTENT_LENGTH" POST_STRING
+
+    # Extract the 'name' value from the POST data
+    NAME=$(echo "$POST_STRING" | sed -n 's/.*name=\([^&]*\).*/\1/p' | sed 's/+/ /g' | sed 's/%/\\x/g' | xargs -0 printf "%b")
+
+    if [ -n "$NAME" ]; then
+        echo "<p>Hello, <strong>$NAME</strong>!</p>"
+    else
+        echo "<p>No name was submitted.</p>"
+    fi
 else
-    echo "<p>No name was submitted.</p>"
+    echo "<p>Invalid request method.</p>"
 fi
 
 echo "<a href='/'>Go back</a>"

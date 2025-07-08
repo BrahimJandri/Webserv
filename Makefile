@@ -10,7 +10,8 @@ SRC =	src/main.cpp \
 		src/HTTP/Response.cpp \
 		src/CGI/CGIHandler.cpp \
 		src/HTTP/ResponseBuilder.cpp \
-		src/Utils/Logger.cpp
+		src/Utils/Logger.cpp \
+		src/CGI/CookieManager.cpp
 
 # Object directory
 OBJ_DIR = objFiles
@@ -25,7 +26,8 @@ HEADERS =	src/Config/ConfigParser.hpp \
 			src/HTTP/Request.hpp \
 			src/HTTP/Response.hpp \
 			src/CGI/CGIHandler.hpp \
-			src/Utils/Logger.hpp
+			src/Utils/Logger.hpp \
+			src/CGI/CookieManager.hpp
 
 # Include directories
 INCLUDES = -I. -Isrc -Isrc/Config -Isrc/Server -Isrc/HTTP -Isrc/CGI -Isrc/Utils

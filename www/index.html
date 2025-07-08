@@ -1,109 +1,214 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webserv Advanced Test Suite</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Webserv Advanced Test Suite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gray-100 text-gray-800">
+  <div class="container mx-auto max-w-4xl p-4 sm:p-8">
+    <header class="text-center mb-10">
+      <h1 class="text-4xl sm:text-5xl font-bold text-gray-900">Webserv Advanced Test Suite 🚀</h1>
+      <p class="mt-2 text-lg text-gray-600">A comprehensive page to test your server's features.</p>
+    </header>
 
-    <div class="container mx-auto max-w-4xl p-4 sm:p-8">
+    <!-- Facebook-Style Session Management -->
+    <section id="sessionSection" class="bg-white p-6 rounded-xl shadow-lg mb-8 max-w-md mx-auto">
+      <h2 class="text-3xl font-bold text-center text-blue-700 mb-6">Webserv Portal</h2>
 
-        <header class="text-center mb-10">
-            <h1 class="text-4xl sm:text-5xl font-bold text-gray-900">Webserv Advanced Test Suite 🚀</h1>
-            <p class="mt-2 text-lg text-gray-600">A comprehensive page to test your server's features.</p>
-        </header>
+      <div id="welcomeMsg" class="hidden text-center mb-4">
+        <p class="text-green-600 font-semibold">Welcome back, <span id="usernameDisplay"></span>!</p>
+        <button onclick="logout()" class="mt-3 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
+      </div>
 
-        <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
-            <h2 class="text-2xl font-bold border-b pb-2 mb-4">GET Method</h2>
-            <ul class="list-disc list-inside space-y-2 mb-4">
-                <li><a href="/non_existent_page.html" class="text-blue-600 hover:underline">Test a non-existent file (404 Not Found)</a></li>
-                <li><a href="/uploads/" class="text-blue-600 hover:underline">Test Directory Listing (for /uploads/)</a></li>
-            </ul>
-            <p class="font-semibold">Image serving test:</p>
-            <img src="https://placekitten.com/g/500/200" alt="Test Kitten" class="mt-2 rounded-lg shadow-md">
-        </section>
+      <div id="authForms">
+        <div class="flex justify-center mb-4">
+          <button id="showLogin" class="px-4 py-2 font-semibold text-blue-700 hover:underline">Login</button>
+          <span class="mx-2 text-gray-400">|</span>
+          <button id="showSignup" class="px-4 py-2 font-semibold text-gray-500 hover:underline">Sign Up</button>
+        </div>
 
-        <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
-            <h2 class="text-2xl font-bold border-b pb-2 mb-4">CGI Script Testing</h2>
-            
-            <div class="mb-6">
-                <h3 class="text-xl font-semibold mb-2">CGI with GET</h3>
-                <p class="mb-3">These links execute different CGI scripts to display server environment variables.</p>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <a href="/cgi-bin/info.py" class="bg-green-500 text-white text-center font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Python Info</a>
-                    <a href="/cgi-bin/info.php" class="bg-indigo-500 text-white text-center font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 transition-colors">PHP Info</a>
-                    <a href="/cgi-bin/info.sh" class="bg-gray-700 text-white text-center font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition-colors">Shell Info</a>
-                    <a href="/cgi-bin/info.js" class="bg-yellow-500 text-white text-center font-bold py-2 px-4 rounded-lg hover:bg-yellow-600 transition-colors">Node.js Info</a>
-                </div>
-            </div>
+        <!-- Login Form -->
+        <form id="loginForm" class="space-y-4">
+          <input type="email" id="loginEmail" name="email" placeholder="Email"
+            class="w-full p-2 border border-gray-300 rounded-lg" required />
+          <input type="password" id="loginPassword" name="password" placeholder="Password"
+            class="w-full p-2 border border-gray-300 rounded-lg" required />
+          <button type="submit"
+            class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">Log In</button>
+        </form>
 
-            <div>
-                <h3 class="text-xl font-semibold mb-2">CGI with POST</h3>
-                <p class="mb-3">Submit this form to send data to the selected CGI script.</p>
-                <form id="cgiPostForm" action="/cgi-bin/handler.py" method="post">
-                    <div class="mb-4">
-                        <label for="cgi-script" class="block font-medium mb-1">Target Script:</label>
-                        <select id="cgi-script" name="cgi-script" class="w-full p-2 border border-gray-300 rounded-lg">
-                            <option value="/cgi-bin/handler.py">Python (handler.py)</option>
-                            <option value="/cgi-bin/handler.php">PHP (handler.php)</option>
-                            <option value="/cgi-bin/handler.sh">Shell (handler.sh)</option>
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label for="name" class="block font-medium mb-1">Your Name:</label>
-                        <input type="text" id="name" name="name" required class="w-full p-2 border border-gray-300 rounded-lg">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">Submit POST Request</button>
-                </form>
-            </div>
-        </section>
+        <!-- Signup Form -->
+        <form id="signupForm" class="space-y-4 hidden mt-6">
+          <input type="text" id="signupName" name="name" placeholder="Your Name"
+            class="w-full p-2 border border-gray-300 rounded-lg" required />
+          <input type="email" id="signupEmail" name="email" placeholder="Email"
+            class="w-full p-2 border border-gray-300 rounded-lg" required />
+          <input type="password" id="signupPassword" name="password" placeholder="Password"
+            class="w-full p-2 border border-gray-300 rounded-lg" required />
+          <button type="submit"
+            class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Create Account</button>
+        </form>
+      </div>
+    </section>
 
-        <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
-            <h2 class="text-2xl font-bold border-b pb-2 mb-4">File Upload (POST)</h2>
-            <p class="mb-3">Select a file to upload. Your server should be configured to save it in the <code>/uploads/</code> directory.</p>
-            <form action="/uploads/" method="post" enctype="multipart/form-data">
-                <input type="file" name="fileToUpload" id="fileToUpload" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                <button type="submit" class="mt-4 w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">Upload File</button>
-            </form>
-        </section>
+    <!-- Dashboard -->
+    <section id="dashboardSection" class="bg-white p-6 rounded-xl shadow-lg mb-8 hidden">
+      <h2 class="text-2xl font-bold border-b pb-2 mb-4">Dashboard</h2>
+      <p class="text-lg">Hello <span id="dashboardName" class="font-semibold text-blue-700"></span>, welcome to your dashboard!</p>
+    </section>
 
-        <section class="bg-white p-6 rounded-xl shadow-lg">
-            <h2 class="text-2xl font-bold border-b pb-2 mb-4">DELETE Method</h2>
-            <p class="mb-3">Enter the path of a resource to delete (e.g., <code>/uploads/my_test_file.txt</code>) and click the button.</p>
-            <div class="flex flex-col sm:flex-row gap-2">
-                <input type="text" id="deleteResource" placeholder="/uploads/file.txt" class="flex-grow p-2 border border-gray-300 rounded-lg">
-                <button id="deleteButton" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">Delete Resource</button>
-            </div>
-        </section>
-    </div>
+    <!-- Other Tests -->
+    <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
+      <h2 class="text-2xl font-bold border-b pb-2 mb-4">GET Method</h2>
+      <ul class="list-disc list-inside space-y-2 mb-4">
+        <li><a href="/non_existent_page.html" class="text-blue-600 hover:underline">Test 404 Not Found</a></li>
+        <li><a href="/uploads/" class="text-blue-600 hover:underline">Test Directory Listing</a></li>
+      </ul>
+      <p class="font-semibold">Image serving test:</p>
+      <img src="https://placekitten.com/g/500/200" alt="Test Kitten" class="mt-2 rounded-lg shadow-md" />
+    </section>
 
-    <script>
-        // Change form action based on CGI script selection
-        document.getElementById('cgi-script').addEventListener('change', (e) => {
-            document.getElementById('cgiPostForm').action = e.target.value;
-        });
+    <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
+      <h2 class="text-2xl font-bold border-b pb-2 mb-4">CGI Script Testing</h2>
+      <div class="mb-6">
+        <h3 class="text-xl font-semibold mb-2">CGI with GET</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <a href="/cgi-bin/info.py" class="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 text-center">Python</a>
+          <a href="/cgi-bin/info.php" class="bg-indigo-500 text-white py-2 px-4 rounded-lg hover:bg-indigo-600 text-center">PHP</a>
+          <a href="/cgi-bin/info.sh" class="bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-800 text-center">Shell</a>
+          <a href="/cgi-bin/info.js" class="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 text-center">Node.js</a>
+        </div>
+      </div>
 
-        // Handle DELETE request
-        document.getElementById('deleteButton').addEventListener('click', () => {
-            const resource = document.getElementById('deleteResource').value;
-            if (!resource) {
-                alert('Please enter the path of the resource to delete.');
-                return;
-            }
-            fetch(resource, {
-                method: 'DELETE'
-            })
-            .then(response => response.text())
-            .then(data => {
-                alert(`DELETE request sent to ${resource}\n\nServer response:\n${data || '(No content)'}`);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert(`An error occurred while sending DELETE to ${resource}. Check the console.`);
-            });
-        });
-    </script>
+      <div>
+        <h3 class="text-xl font-semibold mb-2">CGI with POST</h3>
+        <form id="cgiPostForm" action="/cgi-bin/handler.py" method="post">
+          <div class="mb-4">
+            <label for="cgi-script" class="block mb-1">Target Script:</label>
+            <select id="cgi-script" class="w-full p-2 border rounded-lg">
+              <option value="/cgi-bin/handler.py">Python</option>
+              <option value="/cgi-bin/handler.php">PHP</option>
+              <option value="/cgi-bin/handler.sh">Shell</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label for="name" class="block mb-1">Your Name:</label>
+            <input type="text" id="name" name="name" class="w-full p-2 border rounded-lg" required />
+          </div>
+          <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Submit POST Request</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
+      <h2 class="text-2xl font-bold border-b pb-2 mb-4">File Upload</h2>
+      <form action="/uploads/" method="post" enctype="multipart/form-data">
+        <div class="mb-4">
+          <label for="fileToUpload" class="block mb-1">Choose file:</label>
+          <input type="file" id="fileToUpload" name="fileToUpload" required
+            class="w-full file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 file:rounded-lg file:border-0 file:py-2 file:px-4" />
+        </div>
+        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">Upload File</button>
+      </form>
+    </section>
+
+    <section class="bg-white p-6 rounded-xl shadow-lg">
+      <h2 class="text-2xl font-bold border-b pb-2 mb-4">DELETE Method</h2>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input type="text" id="deleteResource" placeholder="/uploads/file.txt" class="flex-grow p-2 border rounded-lg" />
+        <button id="deleteButton" class="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700">Delete Resource</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    }
+
+    function checkSession() {
+      const username = getCookie("username");
+      if (username) {
+        document.getElementById("usernameDisplay").innerText = username;
+        document.getElementById("dashboardName").innerText = username;
+        document.getElementById("welcomeMsg").classList.remove("hidden");
+        document.getElementById("dashboardSection").classList.remove("hidden");
+        document.getElementById("authForms").classList.add("hidden");
+      }
+    }
+
+    function logout() {
+      document.cookie = "username=; Max-Age=0; path=/";
+      location.reload();
+    }
+
+    document.getElementById("signupForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("signupName").value;
+      const email = document.getElementById("signupEmail").value;
+      const password = document.getElementById("signupPassword").value;
+
+      fetch("/signup", {
+        method: "POST",
+        body: new URLSearchParams({ name, email, password })
+      }).then(res => {
+        if (res.ok) {
+          alert("✅ Signup successful! You can now log in.");
+          location.reload();
+        } else {
+          alert("❌ Signup failed.");
+        }
+      });
+    });
+
+    document.getElementById("loginForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+
+      fetch("/login", {
+        method: "POST",
+        body: new URLSearchParams({ email, password })
+      }).then(res => {
+        if (res.ok) {
+          alert("✅ Login successful!");
+          location.reload();
+        } else {
+          alert("❌ Login failed. Please check your credentials.");
+        }
+      });
+    });
+
+    document.getElementById("cgi-script").addEventListener("change", (e) => {
+      document.getElementById("cgiPostForm").action = e.target.value;
+    });
+
+    document.getElementById("deleteButton").addEventListener("click", () => {
+      const resource = document.getElementById("deleteResource").value;
+      if (!resource) return alert("Enter a resource path.");
+      fetch(resource, { method: "DELETE" })
+        .then(res => res.text())
+        .then(data => alert(`Deleted: ${resource}\n\nResponse:\n${data || "(No content)"}`));
+    });
+
+    document.getElementById("showLogin").addEventListener("click", () => {
+      document.getElementById("loginForm").classList.remove("hidden");
+      document.getElementById("signupForm").classList.add("hidden");
+    });
+
+    document.getElementById("showSignup").addEventListener("click", () => {
+      document.getElementById("signupForm").classList.remove("hidden");
+      document.getElementById("loginForm").classList.add("hidden");
+    });
+
+    checkSession();
+  </script>
 </body>
+
 </html>
