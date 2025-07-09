@@ -2,7 +2,8 @@
 
 #include <string>
 #include "../HTTP/Request.hpp"
-#include "../HTTP/Response.hpp"
+// #include "../CGI/CGIHandler.hpp" // Include the CGI handler for handling CGI requests
+// #include "../HTTP/Response.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>

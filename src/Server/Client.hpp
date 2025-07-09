@@ -2,7 +2,7 @@
 
 #include <string>
 #include "../HTTP/Request.hpp"
-#include "../HTTP/Response.hpp"
+// #include "../HTTP/Response.hpp"
 
 class Client
 {

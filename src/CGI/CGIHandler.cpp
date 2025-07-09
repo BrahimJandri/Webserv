@@ -4,6 +4,8 @@ CGIHandler::CGIHandler() {}
 
 CGIHandler::~CGIHandler() {}
 
+std::string to_string_c98(size_t val);
+
 char **CGIHandler::buildEnvArray(const std::map<std::string, std::string> &envVars)
 {
     char **env = new char *[envVars.size() + 1];

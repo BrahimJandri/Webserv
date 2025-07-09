@@ -90,8 +90,8 @@ Response ResponseBuilder::buildErrorResponse(int statusCode, const std::string &
 
 	// Create simple HTML error page
 	std::string htmlBody = "<!DOCTYPE html>\n<html>\n<head><title>" +
-						   std::to_string(statusCode) + " " + statusMessage + "</title></head>\n<body>\n<h1>" +
-						   std::to_string(statusCode) + " " + statusMessage + "</h1>\n<p>The requested resource encountered an error.</p>\n</body>\n</html>";
+						   to_string_c98(statusCode) + " " + statusMessage + "</title></head>\n<body>\n<h1>" +
+						   to_string_c98(statusCode) + " " + statusMessage + "</h1>\n<p>The requested resource encountered an error.</p>\n</body>\n</html>";
 
 	response.setBody(htmlBody);
 	return response;
@@ -102,7 +102,7 @@ Response ResponseBuilder::buildFileResponse(const std::string &filePath)
 	if (!fileExists(filePath))
 		return (buildErrorResponse(404, "Not Found"));
 
-	std::ifstream file(filePath, std::ios::binary);
+	std::ifstream file(filePath.c_str(), std::ios::binary);
 	if (!file.is_open())
 		return (buildErrorResponse(500, "Internal Server Error"));
 
