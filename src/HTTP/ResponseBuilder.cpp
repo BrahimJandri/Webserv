@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ResponseBuilder.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: user <user@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: rachid <rachid@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 12:58:40 by user              #+#    #+#             */
-/*   Updated: 2025/07/03 10:50:59 by user             ###   ########.fr       */
+/*   Updated: 2025/07/09 14:53:22 by rachid           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,6 +82,8 @@ std::string ResponseBuilder::getContentType(const std::string &filePath)
 		return (unknown);
 }
 
+
+
 Response ResponseBuilder::buildErrorResponse(int statusCode, const std::string &statusMessage)
 {
 	Response response;
@@ -90,8 +92,8 @@ Response ResponseBuilder::buildErrorResponse(int statusCode, const std::string &
 
 	// Create simple HTML error page
 	std::string htmlBody = "<!DOCTYPE html>\n<html>\n<head><title>" +
-						   std::to_string(statusCode) + " " + statusMessage + "</title></head>\n<body>\n<h1>" +
-						   std::to_string(statusCode) + " " + statusMessage + "</h1>\n<p>The requested resource encountered an error.</p>\n</body>\n</html>";
+						   to_string_c98(statusCode) + " " + statusMessage + "</title></head>\n<body>\n<h1>" +
+						   to_string_c98(statusCode) + " " + statusMessage + "</h1>\n<p>The requested resource encountered an error.</p>\n</body>\n</html>";
 
 	response.setBody(htmlBody);
 	return response;
@@ -100,9 +102,10 @@ Response ResponseBuilder::buildErrorResponse(int statusCode, const std::string &
 Response ResponseBuilder::buildFileResponse(const std::string &filePath)
 {
 	if (!fileExists(filePath))
+
 		return (buildErrorResponse(404, "Not Found"));
 
-	std::ifstream file(filePath, std::ios::binary);
+	std::ifstream file(filePath.c_str(), std::ios::binary);
 	if (!file.is_open())
 		return (buildErrorResponse(500, "Internal Server Error"));
 
