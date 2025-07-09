@@ -11,22 +11,33 @@ int main(int ac, char **av)
 	if (ac == 2)
 	{
 		Utils::log("Starting Webserv with configuration: " + std::string(av[1]), AnsiColor::GREEN);
-		ConfigParser parser(av[1]);
 		requestParser req; // hada class fih parsed request
+		// ConfigParser parser(av[1]);
 
-		if (!parser.parse())
+		std::string configFile = av[1];
+		ConfigParser parser(configFile);
+		
+		parser.parse();
+
+		
+		
+		if (!parser.getServerCount())
 		{
-			Utils::logError("Failed to parse configuration file");
+			Utils::logError("No server configurations found in the provided config file.");
 			return 1;
 		}
-
-		const std::vector<ServerConfig> &servers = parser.getServers();
-		Utils::log("Found " + Utils::intToString(servers.size()) + " server configurations", AnsiColor::CYAN);
-
-		for (size_t i = 0; i < servers.size(); ++i)
+		
+		// Utils::log("Found " + Utils::intToString(servers.size()) + " server configurations", AnsiColor::CYAN);
+		
+		for (size_t i = 0; i < parser.getServerCount(); ++i)
 		{
-			Utils::log("Setting up server on " + servers[i].host + ":" + Utils::intToString(servers[i].port), AnsiColor::YELLOW);
-			int fd = create_server_socket(servers[i].host, servers[i].port);
+			const ServerConfig& servers = parser.getServerConfig(i);
+			ConfigValue host = servers.getDirective("host");
+			ConfigValue port = servers.getDirective("port");
+
+			Utils::log("Setting up server on " + host.asString() + ":" + Utils::intToString(port.asInt()), AnsiColor::YELLOW);
+
+			int fd = create_server_socket(host.asString(), port.asInt());
 			if (fd != -1)
 			{
 				// Make the socket non-blocking
@@ -49,3 +60,4 @@ int main(int ac, char **av)
 	}
 	return 0;
 }
+
