@@ -12,9 +12,11 @@
 #include <sys/stat.h>
 #include <map>
 #include <fcntl.h>
-#include <Client.hpp>
 #include <sys/epoll.h>
 #include "../CGI/CookieManager.hpp"
+#include "Client.hpp"
+
+class Client; // Forward declaration to avoid circular dependency
 
 class Server
 {

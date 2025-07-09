@@ -20,7 +20,6 @@ char **CGIHandler::buildEnvArray(const std::map<std::string, std::string> &envVa
     return env;
 }
 
-
 void CGIHandler::freeEnvArray(char **env)
 {
     if (!env)
@@ -30,14 +29,13 @@ void CGIHandler::freeEnvArray(char **env)
     delete[] env;
 }
 
-
-std::string CGIHandler::getInterpreterForScript(const std::string& scriptPath)
+std::string CGIHandler::getInterpreterForScript(const std::string &scriptPath)
 {
     std::map<std::string, std::string> interpreters;
     interpreters[".py"] = "/usr/bin/python3";
     interpreters[".sh"] = "/bin/bash";
     interpreters[".php"] = "/usr/bin/php";
-    interpreters[".js"] = "/usr/bin/node"; // Assuming Node.js for JavaScript
+    interpreters[".js"] = "/usr/bin/node";  // Assuming Node.js for JavaScript
     interpreters[".cgi"] = "/usr/bin/perl"; // Common for CGI scripts
 
     size_t dot_pos = scriptPath.find_last_of(".");
@@ -90,7 +88,8 @@ std::string CGIHandler::execute(const std::string &scriptPath,
 
         // Change to script's directory to handle relative paths correctly
         std::string scriptDir = scriptPath.substr(0, scriptPath.find_last_of('/'));
-        if (chdir(scriptDir.c_str()) == -1) {
+        if (chdir(scriptDir.c_str()) == -1)
+        {
             perror("chdir");
             exit(EXIT_FAILURE);
         }
@@ -105,7 +104,7 @@ std::string CGIHandler::execute(const std::string &scriptPath,
         std::string executableName = interpreterPath.substr(interpreterPath.find_last_of('/') + 1);
 
         // 2. Build the argument vector for execve
-        std::vector<const char*> argv_vec;
+        std::vector<const char *> argv_vec;
         argv_vec.push_back(executableName.c_str()); // Arg 0: the name of the executable
 
         // If the interpreter is not the script itself (e.g., python for a .py script),
@@ -138,7 +137,8 @@ std::string CGIHandler::execute(const std::string &scriptPath,
         if (requestMethod == "POST" && !requestBody.empty())
         {
             ssize_t bytesWritten = write(stdin_pipe[1], requestBody.c_str(), requestBody.size());
-            if (bytesWritten < 0) {
+            if (bytesWritten < 0)
+            {
                 // Handle write error if necessary
                 perror("write to cgi");
             }
@@ -161,7 +161,8 @@ std::string CGIHandler::execute(const std::string &scriptPath,
 
         // You might want to check the exit status of the child here
         // to handle CGI errors more gracefully.
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+        {
             // CGI script exited with an error
             // Consider logging this or returning a 500 error
         }
@@ -170,6 +171,12 @@ std::string CGIHandler::execute(const std::string &scriptPath,
     }
 }
 
+char to_cgi_char(char c)
+{
+    if (c == '-')
+        return '_';
+    return std::toupper(static_cast<unsigned char>(c));
+}
 
 std::map<std::string, std::string> CGIHandler::prepareCGIEnv(const requestParser &req)
 {
@@ -192,13 +199,13 @@ std::map<std::string, std::string> CGIHandler::prepareCGIEnv(const requestParser
         env["QUERY_STRING"] = "";
     }
 
-    auto headers = req.getHeaders();
+    std::map<std::string, std::string> headers = req.getHeaders();
     if (req.getMethod() == "POST")
     {
         if (headers.find("Content-Length") != headers.end())
             env["CONTENT_LENGTH"] = headers.at("Content-Length");
         else
-            env["CONTENT_LENGTH"] = std::to_string(req.getBody().size());
+            env["CONTENT_LENGTH"] = to_string_c98(req.getBody().size());
 
         if (headers.find("Content-Type") != headers.end())
             env["CONTENT_TYPE"] = headers.at("Content-Type");
@@ -209,22 +216,19 @@ std::map<std::string, std::string> CGIHandler::prepareCGIEnv(const requestParser
     env["GATEWAY_INTERFACE"] = "CGI/1.1";
     env["SERVER_SOFTWARE"] = "Webserv/1.0";
 
-    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
+    std::map<std::string, std::string>::const_iterator it;
+    for (it = headers.begin(); it != headers.end(); ++it)
     {
         std::string key = it->first;
         std::string value = it->second;
 
-        // Transform header name to CGI env format, e.g. "User-Agent" => "HTTP_USER_AGENT"
-        std::transform(key.begin(), key.end(), key.begin(), [](unsigned char c)
-                       {
-                           if (c == '-')
-                               return '_';
-                           else
-                               return static_cast<char>(std::toupper(c)); // Cast to char fixes it
-                       });
+        // Transform header name to CGI env format
+        std::transform(key.begin(), key.end(), key.begin(), to_cgi_char);
 
         env["HTTP_" + key] = value;
     }
 
     return env;
 }
+
+

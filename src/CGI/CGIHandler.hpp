@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iostream>
 #include "../HTTP/Request.hpp" // Assuming requestParser is defined in this header
+#include "../Server/Server.hpp" // For to_string_c98 if needed
 
 class Request; // Forward declaration if you want to use Request in prepareCGIEnv
 
@@ -32,3 +33,6 @@ private:
     void freeEnvArray(char **env);
     std::string getInterpreterForScript(const std::string &scriptPath);
 };
+
+
+char to_cgi_char(char c);

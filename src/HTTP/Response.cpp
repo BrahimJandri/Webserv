@@ -139,14 +139,14 @@ void Response::handleCGI(const requestParser &request)
             if (this->_headers.find("Content-Type") == this->_headers.end()) {
                 addHeader("Content-Type", "text/html");
             }
-            addHeader("Content-Length", std::to_string(bodyPart.size()));
+            addHeader("Content-Length", to_string_c98(bodyPart.size()));
         }
         else
         {
             // This handles the case where the CGI script returns only a body (non-parsed headers)
             setStatus(200, "OK");
             setBody(cgiOutput);
-            addHeader("Content-Length", std::to_string(cgiOutput.size()));
+            addHeader("Content-Length", to_string_c98(cgiOutput.size()));
             addHeader("Content-Type", "text/html");
         }
     }
@@ -157,6 +157,6 @@ void Response::handleCGI(const requestParser &request)
         err += e.what();
         setBody(err);
         addHeader("Content-Type", "text/html");
-        addHeader("Content-Length", std::to_string(err.size()));
+        addHeader("Content-Length", to_string_c98(err.size()));
     }
 }
