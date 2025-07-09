@@ -1,4 +1,5 @@
 #include "CGIHandler.hpp"
+#include "Server.hpp"
 
 CGIHandler::CGIHandler() {}
 
@@ -192,13 +193,13 @@ std::map<std::string, std::string> CGIHandler::prepareCGIEnv(const requestParser
         env["QUERY_STRING"] = "";
     }
 
-    auto headers = req.getHeaders();
+    std::map<std::string, std::string> headers = req.getHeaders();
     if (req.getMethod() == "POST")
     {
         if (headers.find("Content-Length") != headers.end())
             env["CONTENT_LENGTH"] = headers.at("Content-Length");
         else
-            env["CONTENT_LENGTH"] = std::to_string(req.getBody().size());
+            env["CONTENT_LENGTH"] = to_string_c98(req.getBody().size());
 
         if (headers.find("Content-Type") != headers.end())
             env["CONTENT_TYPE"] = headers.at("Content-Type");

@@ -12,7 +12,7 @@
 #include <fcntl.h>	  // For open
 #include <sys/stat.h> // For stat, fstat
 
-static std::map<std::string, std::pair<std::string, std::string>> users;
+static std::map<std::string, std::pair<std::string, std::string> > users;
 
 std::map<std::string, std::string> parseUrlEncodedBody(const std::string &body)
 {
