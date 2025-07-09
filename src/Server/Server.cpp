@@ -26,8 +26,6 @@ std::map<std::string, std::string> parseUrlEncodedBody(const std::string &body)
 		{
 			std::string key = pair.substr(0, eq_pos);
 			std::string value = pair.substr(eq_pos + 1);
-			// Basic URL decoding for spaces, etc., can be expanded
-			// For now, this handles simple text.
 			data[key] = value;
 		}
 	}
@@ -232,64 +230,42 @@ void handle_requests(int server_fd, requestParser &req)
 
 		if (path == "/signup" && method == "POST")
 		{
-			// ✅ FIX: Called parseUrlEncodedBody directly, not via an instance.
 			std::map<std::string, std::string> body = parseUrlEncodedBody(req.getBody());
 			if (users.count(body["email"]))
-			{
 				response = ResponseBuilder::buildErrorResponse(409, "Conflict: User already exists");
-			}
 			else
 			{
 				users[body["email"]] = std::make_pair(body["password"], body["name"]);
-				// ✅ FIX: Replaced non-existent buildOkResponse with a direct status set.
 				response.setStatus(200, "OK");
-				// ✅ FIX: Added the 3rd argument (maxAge in seconds) to the function call.
 				response.addHeader("Set-Cookie", CookieManager::createSetCookieHeader("username", body["name"], 3600));
 				std::cout << "New user signed up: " << body["name"] << std::endl;
 			}
 		}
 		else if (path == "/login" && method == "POST")
 		{
-			// ✅ FIX: Called parseUrlEncodedBody directly.
 			std::map<std::string, std::string> body = parseUrlEncodedBody(req.getBody());
 			if (users.count(body["email"]) && users[body["email"]].first == body["password"])
 			{
 				std::string username = users[body["email"]].second;
-				// ✅ FIX: Replaced non-existent buildOkResponse.
 				response.setStatus(200, "OK");
-				// ✅ FIX: Added the 3rd argument (maxAge). 86400 seconds = 1 day.
 				response.addHeader("Set-Cookie", CookieManager::createSetCookieHeader("username", username, 86400));
 				std::cout << "User logged in: " << username << std::endl;
 			}
 			else
-			{
 				response = ResponseBuilder::buildErrorResponse(401, "Unauthorized");
-			}
 		}
-		// === Fallback to existing logic ===
 		else if ((method == "GET" || method == "POST") && path.find("/cgi-bin/") != std::string::npos)
-		{
 			response.handleCGI(req);
-		}
 		else if (method == "GET")
-		{
 			response = ResponseBuilder::buildGetResponse(req, docRoot);
-		}
 		else if (method == "POST")
-		{
 			response = ResponseBuilder::buildPostResponse(req, docRoot);
-		}
 		else if (method == "DELETE")
-		{
 			response = ResponseBuilder::buildDeleteResponse(req, docRoot);
-		}
 		else
-		{
 			response = ResponseBuilder::buildErrorResponse(405, "Method Not Allowed");
-		}
-
 		Server::sendResponse(client_fd, response.toString());
-		close(client_fd); // Don't forget to close the client socket
+		close(client_fd);
 	}
 }
 

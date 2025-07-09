@@ -50,7 +50,8 @@
           <input type="password" id="signupPassword" name="password" placeholder="Password"
             class="w-full p-2 border border-gray-300 rounded-lg" required />
           <button type="submit"
-            class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Create Account</button>
+            class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Create
+            Account</button>
         </form>
       </div>
     </section>
@@ -58,7 +59,8 @@
     <!-- Dashboard -->
     <section id="dashboardSection" class="bg-white p-6 rounded-xl shadow-lg mb-8 hidden">
       <h2 class="text-2xl font-bold border-b pb-2 mb-4">Dashboard</h2>
-      <p class="text-lg">Hello <span id="dashboardName" class="font-semibold text-blue-700"></span>, welcome to your dashboard!</p>
+      <p class="text-lg">Hello <span id="dashboardName" class="font-semibold text-blue-700"></span>, welcome to your
+        dashboard!</p>
     </section>
 
     <!-- Other Tests -->
@@ -77,10 +79,14 @@
       <div class="mb-6">
         <h3 class="text-xl font-semibold mb-2">CGI with GET</h3>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <a href="/cgi-bin/info.py" class="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 text-center">Python</a>
-          <a href="/cgi-bin/info.php" class="bg-indigo-500 text-white py-2 px-4 rounded-lg hover:bg-indigo-600 text-center">PHP</a>
-          <a href="/cgi-bin/info.sh" class="bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-800 text-center">Shell</a>
-          <a href="/cgi-bin/info.js" class="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 text-center">Node.js</a>
+          <a href="/cgi-bin/info.py"
+            class="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 text-center">Python</a>
+          <a href="/cgi-bin/info.php"
+            class="bg-indigo-500 text-white py-2 px-4 rounded-lg hover:bg-indigo-600 text-center">PHP</a>
+          <a href="/cgi-bin/info.sh"
+            class="bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-800 text-center">Shell</a>
+          <a href="/cgi-bin/info.js"
+            class="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 text-center">Node.js</a>
         </div>
       </div>
 
@@ -99,7 +105,8 @@
             <label for="name" class="block mb-1">Your Name:</label>
             <input type="text" id="name" name="name" class="w-full p-2 border rounded-lg" required />
           </div>
-          <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Submit POST Request</button>
+          <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Submit POST
+            Request</button>
         </form>
       </div>
     </section>
@@ -112,15 +119,18 @@
           <input type="file" id="fileToUpload" name="fileToUpload" required
             class="w-full file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 file:rounded-lg file:border-0 file:py-2 file:px-4" />
         </div>
-        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">Upload File</button>
+        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">Upload
+          File</button>
       </form>
     </section>
 
     <section class="bg-white p-6 rounded-xl shadow-lg">
       <h2 class="text-2xl font-bold border-b pb-2 mb-4">DELETE Method</h2>
       <div class="flex flex-col sm:flex-row gap-2">
-        <input type="text" id="deleteResource" placeholder="/uploads/file.txt" class="flex-grow p-2 border rounded-lg" />
-        <button id="deleteButton" class="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700">Delete Resource</button>
+        <input type="text" id="deleteResource" placeholder="/uploads/file.txt"
+          class="flex-grow p-2 border rounded-lg" />
+        <button id="deleteButton" class="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700">Delete
+          Resource</button>
       </div>
     </section>
   </div>
@@ -167,23 +177,31 @@
       });
     });
 
-    document.getElementById("loginForm").addEventListener("submit", (e) => {
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = document.getElementById("loginEmail").value;
       const password = document.getElementById("loginPassword").value;
 
-      fetch("/login", {
-        method: "POST",
-        body: new URLSearchParams({ email, password })
-      }).then(res => {
+      try {
+        const res = await fetch("/login", {
+          method: "POST",
+          body: new URLSearchParams({ email, password }),
+          credentials: "include"  // important to send cookies with fetch
+        });
+        console.log("Login response status:", res.status);
         if (res.ok) {
-          alert("✅ Login successful!");
-          location.reload();
+          console.log("Login successful, redirecting...");
+          // remove alert to avoid blocking
+          window.location.href = "/dashboard.html";
         } else {
+          console.log("Login failed");
           alert("❌ Login failed. Please check your credentials.");
         }
-      });
+      } catch (error) {
+        console.error("Login error:", error);
+      }
     });
+
 
     document.getElementById("cgi-script").addEventListener("change", (e) => {
       document.getElementById("cgiPostForm").action = e.target.value;
