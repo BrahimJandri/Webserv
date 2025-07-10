@@ -181,8 +181,8 @@ void Server::start(const std::string &host, int port)
 		exit(EXIT_FAILURE);
 	}
 
-	requestParser req;
-	handle_requests(server_fd, req);
+	// Use the epoll-based approach with proper Client handling
+	handleConnections(server_fd);
 
 	close(server_fd);
 }
@@ -223,7 +223,7 @@ void handle_requests(int server_fd, requestParser &req)
 		std::cout << "Body:\n"
 				  << req.getBody() << std::endl;
 
-		std::string docRoot = "/home/bjandri/Desktop/webserb/www";
+		std::string docRoot = "/home/user/workspace/brahim/www";
 		std::string method = req.getMethod();
 		std::string path = req.getPath();
 		Response response;

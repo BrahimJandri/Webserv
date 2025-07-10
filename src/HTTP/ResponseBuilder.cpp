@@ -6,7 +6,7 @@
 /*   By: user <user@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 12:58:40 by user              #+#    #+#             */
-/*   Updated: 2025/07/03 10:50:59 by user             ###   ########.fr       */
+/*   Updated: 2025/07/10 18:00:10 by user             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <sstream>
 #include <cstdlib>
+#include <vector>
 
 // Helper function to URL decode strings
 std::string urlDecode(const std::string& str) {
@@ -148,6 +149,7 @@ Response ResponseBuilder::buildPostResponse(const requestParser &request, const 
 			break;
 		}
 	}
+	
 	if (contentType.find("application/x-www-form-urlencoded") != std::string::npos)
 	{
 		// Parse form data: name=value&email=value&...
@@ -237,6 +239,150 @@ Response ResponseBuilder::buildPostResponse(const requestParser &request, const 
 		
 		std::string jsonResponse = "{\"status\": \"success\", \"message\": \"JSON data saved\", \"filename\": \"" + fileName + "\"}";
 		response.setBody(jsonResponse);
+		
+		return response;
+	}
+	else if (contentType.find("multipart/form-data") != std::string::npos)
+	{
+		// Extract boundary from Content-Type header
+		std::string boundary;
+		size_t boundaryPos = contentType.find("boundary=");
+		if (boundaryPos != std::string::npos) {
+			boundary = "--" + contentType.substr(boundaryPos + 9);
+			// Remove any trailing whitespace or semicolons
+			size_t endPos = boundary.find_first_of(" ;\r\n");
+			if (endPos != std::string::npos) {
+				boundary = boundary.substr(0, endPos);
+			}
+		}
+		
+		if (boundary.empty()) {
+			return buildErrorResponse(400, "Bad Request - Missing boundary");
+		}
+		
+		// Variables to store parsed data
+		std::vector<std::string> uploadedFiles;
+		std::map<std::string, std::string> formFields;
+		
+		// Split body into parts using boundary
+		std::string closingBoundary = boundary + "--";
+		size_t pos = 0;
+		
+		while (pos < requestBody.length()) {
+			// Find next boundary
+			size_t boundaryStart = requestBody.find(boundary, pos);
+			if (boundaryStart == std::string::npos) {
+				break;
+			}
+			
+			// Move past the boundary
+			pos = boundaryStart + boundary.length();
+			
+			// Skip CRLF after boundary
+			if (pos + 1 < requestBody.length() && 
+				requestBody[pos] == '\r' && requestBody[pos + 1] == '\n') {
+				pos += 2;
+			}
+			
+			// Find the next boundary to determine end of this part
+			size_t nextBoundaryStart = requestBody.find(boundary, pos);
+			if (nextBoundaryStart == std::string::npos) {
+				break;
+			}
+			
+			// Extract the current part (between boundaries)
+			std::string part = requestBody.substr(pos, nextBoundaryStart - pos);
+			
+			// Remove trailing CRLF before the next boundary
+			if (part.length() >= 2 && 
+				part[part.length() - 2] == '\r' && part[part.length() - 1] == '\n') {
+				part = part.substr(0, part.length() - 2);
+			}
+			
+			// Find the empty line that separates headers from content
+			size_t headerEnd = part.find("\r\n\r\n");
+			if (headerEnd == std::string::npos) {
+				pos = nextBoundaryStart;
+				continue;
+			}
+			
+			// Extract headers and content
+			std::string headers = part.substr(0, headerEnd);
+			std::string content = part.substr(headerEnd + 4);
+			
+			// Parse Content-Disposition header to get name and filename
+			std::string name, filename;
+			
+			if (headers.find("Content-Disposition") != std::string::npos) {
+				// Find name parameter
+				size_t namePos = headers.find("name=\"");
+				if (namePos != std::string::npos) {
+					namePos += 6; // Skip 'name="'
+					size_t nameEnd = headers.find("\"", namePos);
+					if (nameEnd != std::string::npos) {
+						name = headers.substr(namePos, nameEnd - namePos);
+					}
+				}
+				
+				// Find filename parameter
+				size_t filenamePos = headers.find("filename=\"");
+				if (filenamePos != std::string::npos) {
+					filenamePos += 10; // Skip 'filename="'
+					size_t filenameEnd = headers.find("\"", filenamePos);
+					if (filenameEnd != std::string::npos) {
+						filename = headers.substr(filenamePos, filenameEnd - filenamePos);
+					}
+				}
+			}
+			
+			// If it's a file upload (has filename), save the file
+			if (!filename.empty()) {
+				std::string saveDir = docRoot + "/data";
+				std::string fullPath = saveDir + "/" + filename;
+				
+				// Save file in binary mode
+				std::ofstream file(fullPath.c_str(), std::ios::binary);
+				if (file.is_open()) {
+					file.write(content.c_str(), content.length());
+					file.close();
+					uploadedFiles.push_back(filename);
+				}
+			}
+			// Otherwise, it's a regular form field
+			else if (!name.empty()) {
+				formFields[name] = content;
+			}
+			
+			// Move to next part
+			pos = nextBoundaryStart;
+		}
+		
+		// Create response showing uploaded files and form fields
+		Response response;
+		response.setStatus(201, "Created");
+		response.addHeader("Content-Type", "text/html");
+		
+		std::string htmlBody = "<!DOCTYPE html>\n<html>\n<head><title>Upload Success</title></head>\n<body>\n"
+			"<h1>Upload Successful!</h1>\n";
+		
+		if (!uploadedFiles.empty()) {
+			htmlBody += "<h2>Uploaded Files:</h2>\n<ul>\n";
+			for (size_t i = 0; i < uploadedFiles.size(); ++i) {
+				htmlBody += "<li>" + uploadedFiles[i] + "</li>\n";
+			}
+			htmlBody += "</ul>\n";
+		}
+		
+		if (!formFields.empty()) {
+			htmlBody += "<h2>Form Fields:</h2>\n<ul>\n";
+			for (std::map<std::string, std::string>::iterator iter = formFields.begin(); iter != formFields.end(); ++iter) {
+				htmlBody += "<li><strong>" + iter->first + ":</strong> " + iter->second + "</li>\n";
+			}
+			htmlBody += "</ul>\n";
+		}
+		
+		htmlBody += "<a href=\"/\">Back to Home</a>\n</body>\n</html>";
+		response.setBody(htmlBody);
 		
 		return response;
 	}

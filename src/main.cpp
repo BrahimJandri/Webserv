@@ -10,7 +10,6 @@ int start_server(const std::string &config_path)
 {
 	Utils::log("Starting Webserv with configuration: " + config_path, AnsiColor::GREEN);
 	ConfigParser parser(config_path);
-	requestParser req;
 
 	if (!parser.parse())
 	{
@@ -24,11 +23,11 @@ int start_server(const std::string &config_path)
 	for (size_t i = 0; i < servers.size(); ++i)
 	{
 		Utils::log("Setting up server on " + servers[i].host + ":" + Utils::intToString(servers[i].port), AnsiColor::YELLOW);
-		int fd = create_server_socket(servers[i].host, servers[i].port);
-		if (fd != -1)
-			handle_requests(fd, req);
-		else
-			Utils::logError("Failed to create socket for server " + Utils::intToString(i));
+		
+		// Create a Server instance and use the proper epoll-based approach
+		Server server;
+		server.start(servers[i].host, servers[i].port);
+		// This will use the Client class with proper Content-Length handling
 	}
 	return 0;
 }

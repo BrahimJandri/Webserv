@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .upload-form { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+        input[type="file"] { margin: 10px 0; }
+        input[type="text"] { width: 100%; padding: 8px; margin: 5px 0; }
+        button { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #005a87; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Webserv File Upload Test</h1>
+    
+    <div class="upload-form">
+        <h2>Test Multipart File Upload</h2>
+        <form action="/" method="post" enctype="multipart/form-data">
+            <label for="file">Choose file to upload:</label><br>
+            <input type="file" id="file" name="file" required><br><br>
+            
+            <label for="description">Description:</label><br>
+            <input type="text" id="description" name="description" placeholder="Enter file description"><br><br>
+            
+            <label for="category">Category:</label><br>
+            <input type="text" id="category" name="category" placeholder="Enter category"><br><br>
+            
+            <button type="submit">Upload File</button>
+        </form>
+    </div>
+    
+    <div style="margin-top: 30px;">
+        <h3>Test Instructions:</h3>
+        <ol>
+            <li>Choose any file (small or large)</li>
+            <li>Fill in the description and category</li>
+            <li>Click Upload File</li>
+            <li>Check the response to see uploaded files and form fields</li>
+            <li>Files will be saved to <code>www/data/</code> directory</li>
+        </ol>
+    </div>
+    
+    <div style="margin-top: 20px;">
+        <a href="/">← Back to Main Page</a>
+    </div>
+</body>
+</html>

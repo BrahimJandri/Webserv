@@ -83,7 +83,7 @@ std::string Response::toString() const {
 void Response::handleCGI(const requestParser &request)
 {
     std::string reqPath = request.getPath(); // e.g. "/cgi-bin/convert.py"
-    std::string root = "/home/bjandri/Desktop/webserb/www";
+    std::string root = "/home/user/workspace/brahim/www";
     std::string scriptPath = root + reqPath; // becomes /home/bjandri/Desktop/webserb/www/cgi-bin/convert.py
 
     std::map<std::string, std::string> env = CGIHandler::prepareCGIEnv(request);
