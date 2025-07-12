@@ -16,6 +16,9 @@
 #include <sys/epoll.h>
 #include "../CGI/CookieManager.hpp"
 #include "Client.hpp"
+#include <set>
+#include "../Utils/AnsiColor.hpp"
+#include "../Config/ConfigParser.hpp"
 
 class Client; // Forward declaration to avoid circular dependency
 
@@ -25,6 +28,7 @@ private:
     int epoll_fd;
     std::map<int, Client *> clients;
     static const int MAX_EVENTS = 64;
+    std::set<int> server_fds;
 
 public:
     Server();
@@ -32,7 +36,9 @@ public:
 
     void start(const std::string &host, int port);
     void stop();
-    void handleConnections(int server_fd);
+    void setupServers(const ConfigParser &parser);
+    // void handleConnections(int server_fd);
+    void handleConnections();
     void acceptNewConnection(int server_fd);
     void handleClientRead(int client_fd);
     void handleClientWrite(int client_fd);

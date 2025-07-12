@@ -5,7 +5,6 @@
 #include <sstream>
 #include <cctype> // For std::tolower
 
-
 static std::map<std::string, std::pair<std::string, std::string> > users;
 
 std::map<std::string, std::string> parseUrlEncodedBody(const std::string &body)
@@ -205,6 +204,8 @@ void Client::prepareResponse()
 		else
 			response = ResponseBuilder::buildErrorResponse(401, "Unauthorized");
 	}
+	else if ((_request.getMethod() == "GET" || _request.getMethod() == "POST") && _request.getPath().find("/cgi-bin/") != std::string::npos)
+		response.handleCGI(_request);
 	else if (_request.getMethod() == "GET")
 	{
 		response = ResponseBuilder::buildGetResponse(_request, docRoot);

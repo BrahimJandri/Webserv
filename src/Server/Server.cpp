@@ -20,6 +20,43 @@ std::string to_string_c98(size_t val)
 	return oss.str();
 }
 
+void Server::setupServers(const ConfigParser &parser)
+{
+	size_t serverCount = parser.getServerCount();
+
+	for (size_t i = 0; i < serverCount; ++i)
+	{
+		const ServerConfig &servers = parser.getServerConfig(i);
+		std::string host = servers.getDirective("host").asString();
+		int port = servers.getDirective("port").asInt();
+
+		Utils::log("Setting up server on " + host + ":" + Utils::intToString(port), AnsiColor::YELLOW);
+
+		int server_fd = create_server_socket(host, port);
+		if (server_fd == -1)
+		{
+			std::cerr << "Failed to create server socket." << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		// Register the server fd with epoll
+		struct epoll_event ev;
+		ev.events = EPOLLIN;
+		ev.data.fd = server_fd;
+
+		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) == -1)
+		{
+			perror("epoll_ctl: server_fd");
+			exit(EXIT_FAILURE);
+		}
+
+		std::cout << "Listening on " << host << ":" << port << std::endl;
+
+		server_fds.insert(server_fd); // Store this server socket for use in handleConnections
+	}
+}
+
+
 Server::Server()
 {
 	epoll_fd = epoll_create1(0);
@@ -209,8 +246,8 @@ void serve_static_file(int client_fd, const std::string &file_path, const std::s
 // 		Response response;
 
 		
-// 		else if ((method == "GET" || method == "POST") && path.find("/cgi-bin/") != std::string::npos)
-// 			response.handleCGI(req);
+		// else if ((method == "GET" || method == "POST") && path.find("/cgi-bin/") != std::string::npos)
+		// 	response.handleCGI(req);
 // 		else if (method == "GET")
 // 			response = ResponseBuilder::buildGetResponse(req, docRoot);
 // 		else if (method == "POST")
@@ -378,17 +415,42 @@ void Server::handleClientWrite(int client_fd)
 	closeClientConnection(client_fd);
 }
 
-void Server::handleConnections(int server_fd)
-{
-	struct epoll_event event;
-	event.events = EPOLLIN;
-	event.data.fd = server_fd;
+// void Server::handleConnections(int server_fd)
+// {
+// 	struct epoll_event event;
+// 	event.events = EPOLLIN;
+// 	event.data.fd = server_fd;
 
-	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &event) == -1)
-	{
-		perror("Epoll_ctl: server_fd!");
-		exit(EXIT_FAILURE);
-	}
+// 	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &event) == -1)
+// 	{
+// 		perror("Epoll_ctl: server_fd!");
+// 		exit(EXIT_FAILURE);
+// 	}
+// 	struct epoll_event events[MAX_EVENTS];
+
+// 	while (true)
+// 	{
+// 		int num_events = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+// 		if (num_events == -1)
+// 		{
+// 			perror("epoll_wait");
+// 			continue;
+// 		}
+
+// 		for (int i = 0; i < num_events; i++)
+// 		{
+// 			if (events[i].data.fd == server_fd)
+// 				acceptNewConnection(server_fd);
+// 			else if (events[i].events & EPOLLIN)
+// 				handleClientRead(events[i].data.fd);
+// 			else if (events[i].events & EPOLLOUT)
+// 				handleClientWrite(events[i].data.fd);
+// 		}
+// 	}
+// }
+
+void Server::handleConnections()
+{
 	struct epoll_event events[MAX_EVENTS];
 
 	while (true)
@@ -400,17 +462,29 @@ void Server::handleConnections(int server_fd)
 			continue;
 		}
 
-		for (int i = 0; i < num_events; i++)
+		for (int i = 0; i < num_events; ++i)
 		{
-			if (events[i].data.fd == server_fd)
-				acceptNewConnection(server_fd);
+			int fd = events[i].data.fd;
+
+			// If the fd is one of the server sockets, accept new connection
+			if (server_fds.find(fd) != server_fds.end())
+			{
+				acceptNewConnection(fd);
+			}
+			// Otherwise, handle client socket events
 			else if (events[i].events & EPOLLIN)
-				handleClientRead(events[i].data.fd);
+			{
+				handleClientRead(fd);
+			}
 			else if (events[i].events & EPOLLOUT)
-				handleClientWrite(events[i].data.fd);
+			{
+				handleClientWrite(fd);
+			}
 		}
 	}
 }
+
+
 
 void Server::sendResponse(int client_fd, const std::string &response)
 {

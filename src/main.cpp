@@ -6,34 +6,51 @@
 #include <iostream>
 #include <fcntl.h>
 
+// int start_server(const std::string &config_path)
+// {
+// 	Utils::log("Starting Webserv with configuration: " + config_path, AnsiColor::GREEN);
+// 	ConfigParser parser(config_path);
+
+// 	parser.parse();
+// 	size_t serverCount = parser.getServerCount();
+// 	Utils::log("Found " + Utils::intToString(serverCount) + " server configurations", AnsiColor::CYAN);
+
+// 	for (size_t i = 0; i < serverCount; ++i)
+// 	{
+// 		const ServerConfig &servers = parser.getServerConfig(i);
+// 		ConfigValue host = servers.getDirective("host");
+// 		ConfigValue port = servers.getDirective("port");
+// 		Utils::log("Setting up server on " + host.asString() + ":" + Utils::intToString(port.asInt()), AnsiColor::YELLOW);
+
+// 		int server_fd = create_server_socket(host.asString(), port.asInt());
+// 		if (server_fd == -1)
+// 		{
+// 			std::cerr << "Failed to create server socket." << std::endl;
+// 			exit(EXIT_FAILURE);
+// 		}
+// 		// Create a Server instance and use the proper epoll-based approach
+// 		// This will use the Client class with proper Content-Length handling
+// 	}
+// 	handleConnections(server_fd);
+// 	exit(EXIT_SUCCESS);
+// }
+
 int start_server(const std::string &config_path)
 {
-	Utils::log("Starting Webserv with configuration: " + config_path, AnsiColor::GREEN);
-	ConfigParser parser(config_path);
+    Utils::log("Starting Webserv with configuration: " + config_path, AnsiColor::GREEN);
+    ConfigParser parser(config_path);
+    parser.parse();
 
-	parser.parse();
-	size_t serverCount = parser.getServerCount();
-	Utils::log("Found " + Utils::intToString(serverCount) + " server configurations", AnsiColor::CYAN);
+    size_t serverCount = parser.getServerCount();
+    Utils::log("Found " + Utils::intToString(serverCount) + " server configurations", AnsiColor::CYAN);
 
-	for (size_t i = 0; i < serverCount; ++i)
-	{
-		const ServerConfig &servers = parser.getServerConfig(i);
-		ConfigValue host = servers.getDirective("host");
-		ConfigValue port = servers.getDirective("port");
-		Utils::log("Setting up server on " + host.asString() + ":" + Utils::intToString(port.asInt()), AnsiColor::YELLOW);
+    Server server;
+    server.setupServers(parser);      // 👈 create sockets + register to epoll
+    server.handleConnections();       // 👈 single loop to handle all
 
-		int server_fd = create_server_socket(host.asString(), port.asInt());
-		if (server_fd == -1)
-		{
-			std::cerr << "Failed to create server socket." << std::endl;
-			exit(EXIT_FAILURE);
-		}
-		// Create a Server instance and use the proper epoll-based approach
-		// This will use the Client class with proper Content-Length handling
-	}
-	// handleConnections(server_fd);
-	exit(EXIT_SUCCESS);
+    exit(EXIT_SUCCESS);
 }
+
 
 int main(int ac, char **av)
 {
