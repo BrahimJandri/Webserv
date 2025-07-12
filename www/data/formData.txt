@@ -1,4 +1,4 @@
 Form Submission Data:
-Path: /cgi-bin/handler.sh
+Path: /
 
-name: brahim jandri
+data: ${jndi:dns://10.52.80.185:5353/MDEDiscoveryGenericPostParam-8080}
