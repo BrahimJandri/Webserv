@@ -1,5 +1,4 @@
 Form Submission Data:
-Path: /login
+Path: /cgi-bin/handler.sh
 
-email: bjandri.1337@gmail.com
-password: brahim
+name: brahim jandri

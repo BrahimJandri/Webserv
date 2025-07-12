@@ -5,6 +5,27 @@
 #include <sstream>
 #include <cctype> // For std::tolower
 
+
+static std::map<std::string, std::pair<std::string, std::string> > users;
+
+std::map<std::string, std::string> parseUrlEncodedBody(const std::string &body)
+{
+	std::map<std::string, std::string> data;
+	std::istringstream stream(body);
+	std::string pair;
+	while (std::getline(stream, pair, '&'))
+	{
+		size_t eq_pos = pair.find('=');
+		if (eq_pos != std::string::npos)
+		{
+			std::string key = pair.substr(0, eq_pos);
+			std::string value = pair.substr(eq_pos + 1);
+			data[key] = value;
+		}
+	}
+	return data;
+}
+
 // Helper function for creating HTTP responses
 std::string Client::to_string_client(size_t val)
 {
@@ -158,7 +179,33 @@ void Client::prepareResponse()
 	Response response;
 	std::string docRoot = "www"; // Default document root
 
-	if (_request.getMethod() == "GET")
+	if (_request.getPath() == "/signup" && _request.getMethod() == "POST")
+	{
+		std::map<std::string, std::string> body = parseUrlEncodedBody(_request.getBody());
+		if (users.count(body["email"]))
+			response = ResponseBuilder::buildErrorResponse(409, "Conflict: User already exists");
+		else
+		{
+			users[body["email"]] = std::make_pair(body["password"], body["name"]);
+			response.setStatus(200, "OK");
+			response.addHeader("Set-Cookie", CookieManager::createSetCookieHeader("username", body["name"], 3600));
+			std::cout << "New user signed up: " << body["name"] << std::endl;
+		}
+	}
+	else if (_request.getPath() == "/login" && _request.getMethod() == "POST")
+	{
+		std::map<std::string, std::string> body = parseUrlEncodedBody(_request.getBody());
+		if (users.count(body["email"]) && users[body["email"]].first == body["password"])
+		{
+			std::string username = users[body["email"]].second;
+			response.setStatus(200, "OK");
+			response.addHeader("Set-Cookie", CookieManager::createSetCookieHeader("username", username, 86400));
+			std::cout << "User logged in: " << username << std::endl;
+		}
+		else
+			response = ResponseBuilder::buildErrorResponse(401, "Unauthorized");
+	}
+	else if (_request.getMethod() == "GET")
 	{
 		response = ResponseBuilder::buildGetResponse(_request, docRoot);
 	}

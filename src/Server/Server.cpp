@@ -12,26 +12,6 @@
 #include <fcntl.h>	  // For open
 #include <sys/stat.h> // For stat, fstat
 
-static std::map<std::string, std::pair<std::string, std::string> > users;
-
-std::map<std::string, std::string> parseUrlEncodedBody(const std::string &body)
-{
-	std::map<std::string, std::string> data;
-	std::istringstream stream(body);
-	std::string pair;
-	while (std::getline(stream, pair, '&'))
-	{
-		size_t eq_pos = pair.find('=');
-		if (eq_pos != std::string::npos)
-		{
-			std::string key = pair.substr(0, eq_pos);
-			std::string value = pair.substr(eq_pos + 1);
-			data[key] = value;
-		}
-	}
-	return data;
-}
-
 // Helper function to convert size_t to std::string (C++98 compatible)
 std::string to_string_c98(size_t val)
 {
@@ -172,102 +152,77 @@ void serve_static_file(int client_fd, const std::string &file_path, const std::s
 	close(file_fd);
 }
 
-void Server::start(const std::string &host, int port)
-{
-	int server_fd = create_server_socket(host, port);
-	if (server_fd == -1)
-	{
-		std::cerr << "Failed to create server socket." << std::endl;
-		exit(EXIT_FAILURE);
-	}
+// void Server::start(const std::string &host, int port)
+// {
+	// int server_fd = create_server_socket(host, port);
+	// if (server_fd == -1)
+	// {
+	// 	std::cerr << "Failed to create server socket." << std::endl;
+	// 	exit(EXIT_FAILURE);
+	// }
 
 	// Use the epoll-based approach with proper Client handling
-	handleConnections(server_fd);
+	// handleConnections(server_fd);
 
-	close(server_fd);
-}
+	// close(server_fd);
+// }
 
 // Your main request handling loop
-void handle_requests(int server_fd, requestParser &req)
-{
-	while (true)
-	{
-		int client_fd = accept(server_fd, NULL, NULL);
-		if (client_fd < 0)
-		{
-			perror("accept");
-			continue;
-		}
+// void handle_requests(int server_fd, requestParser &req)
+// {
+// 	while (true)
+// 	{
+// 		int client_fd = accept(server_fd, NULL, NULL);
+// 		if (client_fd < 0)
+// 		{
+// 			perror("accept");
+// 			continue;
+// 		}
 
-		char buffer[4096];
-		std::memset(buffer, 0, sizeof(buffer));
-		ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
-		if (bytes_read <= 0)
-		{
-			close(client_fd);
-			continue;
-		}
+// 		char buffer[4096];
+// 		std::memset(buffer, 0, sizeof(buffer));
+// 		ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
+// 		if (bytes_read <= 0)
+// 		{
+// 			close(client_fd);
+// 			continue;
+// 		}
 
-		std::string raw_request(buffer);
-		req.parseRequest(raw_request);
+// 		std::string raw_request(buffer);
+// 		req.parseRequest(raw_request);
 
-		std::cout << "== New HTTP Request ==\n";
-		std::cout << "Method: " << req.getMethod() << "\n";
-		std::cout << "Path: " << req.getPath() << "\n";
-		std::cout << "HTTP Version: " << req.getHttpVersion() << std::endl;
-		std::cout << "Headers:\n";
-		for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin(); it != req.getHeaders().end(); ++it)
-		{
-			std::cout << "  " << it->first << ": " << it->second << std::endl;
-		}
-		std::cout << "Body:\n"
-				  << req.getBody() << std::endl;
+// 		std::cout << "== New HTTP Request ==\n";
+// 		std::cout << "Method: " << req.getMethod() << "\n";
+// 		std::cout << "Path: " << req.getPath() << "\n";
+// 		std::cout << "HTTP Version: " << req.getHttpVersion() << std::endl;
+// 		std::cout << "Headers:\n";
+// 		for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin(); it != req.getHeaders().end(); ++it)
+// 		{
+// 			std::cout << "  " << it->first << ": " << it->second << std::endl;
+// 		}
+// 		std::cout << "Body:\n"
+// 				  << req.getBody() << std::endl;
 
-		std::string docRoot = "/home/user/workspace/brahim/www";
-		std::string method = req.getMethod();
-		std::string path = req.getPath();
-		Response response;
+// 		std::string docRoot = "/home/user/workspace/brahim/www";
+// 		std::string method = req.getMethod();
+// 		std::string path = req.getPath();
+// 		Response response;
 
-		if (path == "/signup" && method == "POST")
-		{
-			std::map<std::string, std::string> body = parseUrlEncodedBody(req.getBody());
-			if (users.count(body["email"]))
-				response = ResponseBuilder::buildErrorResponse(409, "Conflict: User already exists");
-			else
-			{
-				users[body["email"]] = std::make_pair(body["password"], body["name"]);
-				response.setStatus(200, "OK");
-				response.addHeader("Set-Cookie", CookieManager::createSetCookieHeader("username", body["name"], 3600));
-				std::cout << "New user signed up: " << body["name"] << std::endl;
-			}
-		}
-		else if (path == "/login" && method == "POST")
-		{
-			std::map<std::string, std::string> body = parseUrlEncodedBody(req.getBody());
-			if (users.count(body["email"]) && users[body["email"]].first == body["password"])
-			{
-				std::string username = users[body["email"]].second;
-				response.setStatus(200, "OK");
-				response.addHeader("Set-Cookie", CookieManager::createSetCookieHeader("username", username, 86400));
-				std::cout << "User logged in: " << username << std::endl;
-			}
-			else
-				response = ResponseBuilder::buildErrorResponse(401, "Unauthorized");
-		}
-		else if ((method == "GET" || method == "POST") && path.find("/cgi-bin/") != std::string::npos)
-			response.handleCGI(req);
-		else if (method == "GET")
-			response = ResponseBuilder::buildGetResponse(req, docRoot);
-		else if (method == "POST")
-			response = ResponseBuilder::buildPostResponse(req, docRoot);
-		else if (method == "DELETE")
-			response = ResponseBuilder::buildDeleteResponse(req, docRoot);
-		else
-			response = ResponseBuilder::buildErrorResponse(405, "Method Not Allowed");
-		Server::sendResponse(client_fd, response.toString());
-		close(client_fd);
-	}
-}
+		
+// 		else if ((method == "GET" || method == "POST") && path.find("/cgi-bin/") != std::string::npos)
+// 			response.handleCGI(req);
+// 		else if (method == "GET")
+// 			response = ResponseBuilder::buildGetResponse(req, docRoot);
+// 		else if (method == "POST")
+// 			response = ResponseBuilder::buildPostResponse(req, docRoot);
+// 		else if (method == "DELETE")
+// 			response = ResponseBuilder::buildDeleteResponse(req, docRoot);
+// 		else
+// 			response = ResponseBuilder::buildErrorResponse(405, "Method Not Allowed");
+// 		Server::sendResponse(client_fd, response.toString());
+// 		close(client_fd);
+// 	}
+// }
 
 Server::~Server()
 {
