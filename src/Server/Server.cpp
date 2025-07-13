@@ -99,7 +99,6 @@ int create_server_socket(const std::string &host, int port)
 		return -1;
 	}
 
-	std::cout << "Listening on " << host << ":" << port << std::endl;
 	return server_fd;
 }
 
