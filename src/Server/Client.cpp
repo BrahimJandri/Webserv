@@ -167,65 +167,7 @@ bool Client::processRequest()
 	}
 }
 
-void Client::prepareResponse()
-{
-	if (_response_ready)
-	{
-		return;
-	}
 
-	// Use the actual ResponseBuilder to handle the request based on method
-	Response response;
-	std::string docRoot = "www"; // Default document root
-
-	if (_request.getPath() == "/signup" && _request.getMethod() == "POST")
-	{
-		std::map<std::string, std::string> body = parseUrlEncodedBody(_request.getBody());
-		if (users.count(body["email"]))
-			response = ResponseBuilder::buildErrorResponse(409, "Conflict: User already exists");
-		else
-		{
-			users[body["email"]] = std::make_pair(body["password"], body["name"]);
-			response.setStatus(200, "OK");
-			response.addHeader("Set-Cookie", CookieManager::createSetCookieHeader("username", body["name"], 3600));
-			std::cout << "New user signed up: " << body["name"] << std::endl;
-		}
-	}
-	else if (_request.getPath() == "/login" && _request.getMethod() == "POST")
-	{
-		std::map<std::string, std::string> body = parseUrlEncodedBody(_request.getBody());
-		if (users.count(body["email"]) && users[body["email"]].first == body["password"])
-		{
-			std::string username = users[body["email"]].second;
-			response.setStatus(200, "OK");
-			response.addHeader("Set-Cookie", CookieManager::createSetCookieHeader("username", username, 86400));
-			std::cout << "User logged in: " << username << std::endl;
-		}
-		else
-			response = ResponseBuilder::buildErrorResponse(401, "Unauthorized");
-	}
-	else if ((_request.getMethod() == "GET" || _request.getMethod() == "POST") && _request.getPath().find("/cgi-bin/") != std::string::npos)
-		response.handleCGI(_request);
-	else if (_request.getMethod() == "GET")
-	{
-		response = ResponseBuilder::buildGetResponse(_request, docRoot);
-	}
-	else if (_request.getMethod() == "POST")
-	{
-		response = ResponseBuilder::buildPostResponse(_request, docRoot);
-	}
-	else if (_request.getMethod() == "DELETE")
-	{
-		response = ResponseBuilder::buildDeleteResponse(_request, docRoot);
-	}
-	else
-	{
-		response = ResponseBuilder::buildErrorResponse(405, "Method Not Allowed");
-	}
-
-	_response = response.toString();
-	_response_ready = true;
-}
 
 std::string Client::getResponse() const
 {

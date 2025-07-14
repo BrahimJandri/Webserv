@@ -20,6 +20,22 @@ std::string to_string_c98(size_t val)
 	return oss.str();
 }
 
+
+void Server::prepareResponse(int client_fd)
+{
+	Client *client = clients[client_fd];
+	if (!client)
+	{
+		std::cerr << "Client not found for fd: " << client_fd << std::endl;
+		return;
+	}
+	ServerConfig &serverConfig = clientToServergMap[client_fd];
+	serverConfig.print(); // Print server config for debugging
+
+}
+
+
+
 void Server::setupServers(const ConfigParser &parser)
 {
 	size_t serverCount = parser.getServerCount();
@@ -38,7 +54,7 @@ void Server::setupServers(const ConfigParser &parser)
 			std::cerr << "Failed to create server socket." << std::endl;
 			exit(EXIT_FAILURE);
 		}
-
+		serverConfigMap[server_fd] = servers; // Store the server configuration based on the fd of server
 		// Register the server fd with epoll
 		struct epoll_event ev;
 		ev.events = EPOLLIN;
@@ -55,7 +71,6 @@ void Server::setupServers(const ConfigParser &parser)
 		server_fds.insert(server_fd); // Store this server socket for use in handleConnections
 	}
 }
-
 
 Server::Server()
 {
@@ -190,17 +205,17 @@ void serve_static_file(int client_fd, const std::string &file_path, const std::s
 
 // void Server::start(const std::string &host, int port)
 // {
-	// int server_fd = create_server_socket(host, port);
-	// if (server_fd == -1)
-	// {
-	// 	std::cerr << "Failed to create server socket." << std::endl;
-	// 	exit(EXIT_FAILURE);
-	// }
+// int server_fd = create_server_socket(host, port);
+// if (server_fd == -1)
+// {
+// 	std::cerr << "Failed to create server socket." << std::endl;
+// 	exit(EXIT_FAILURE);
+// }
 
-	// Use the epoll-based approach with proper Client handling
-	// handleConnections(server_fd);
+// Use the epoll-based approach with proper Client handling
+// handleConnections(server_fd);
 
-	// close(server_fd);
+// close(server_fd);
 // }
 
 // Your main request handling loop
@@ -244,9 +259,8 @@ void serve_static_file(int client_fd, const std::string &file_path, const std::s
 // 		std::string path = req.getPath();
 // 		Response response;
 
-		
-		// else if ((method == "GET" || method == "POST") && path.find("/cgi-bin/") != std::string::npos)
-		// 	response.handleCGI(req);
+// else if ((method == "GET" || method == "POST") && path.find("/cgi-bin/") != std::string::npos)
+// 	response.handleCGI(req);
 // 		else if (method == "GET")
 // 			response = ResponseBuilder::buildGetResponse(req, docRoot);
 // 		else if (method == "POST")
@@ -309,6 +323,7 @@ void Server::acceptNewConnection(int server_fd)
 
 	// Create client object and store it
 	clients[client_fd] = new Client(client_fd);
+	clientToServergMap[client_fd] = serverConfigMap[server_fd]; // Associate client with server config
 
 	std::cout << "New connection from " << inet_ntoa(client_addr.sin_addr)
 			  << ":" << ntohs(client_addr.sin_port)
@@ -365,7 +380,7 @@ void Server::handleClientRead(int client_fd)
 	if (clients[client_fd]->processRequest())
 	{
 		// Request is complete, prepare response
-		clients[client_fd]->prepareResponse();
+		prepareResponse(client_fd);
 
 		// Update epoll to watch for write readiness
 		struct epoll_event event;
@@ -393,7 +408,7 @@ void Server::handleClientWrite(int client_fd)
 	if (!client->isResponseReady())
 	{
 		// Should not happen, but just in case
-		client->prepareResponse();
+		// client->prepareResponse();
 	}
 
 	std::string response = client->getResponse();
@@ -482,8 +497,6 @@ void Server::handleConnections()
 		}
 	}
 }
-
-
 
 void Server::sendResponse(int client_fd, const std::string &response)
 {

@@ -2,6 +2,7 @@
 
 #include <string>
 #include "../HTTP/Request.hpp"
+#include "../Config/ConfigParser.hpp"
 // #include "../HTTP/Response.hpp"
 
 class Client
@@ -25,7 +26,6 @@ public:
 
 	void appendToBuffer(const std::string &data);
 	bool processRequest();
-	void prepareResponse();
 	std::string getResponse() const;
 	void clearResponse();
 

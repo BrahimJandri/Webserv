@@ -29,6 +29,8 @@ private:
     std::map<int, Client *> clients;
     static const int MAX_EVENTS = 64;
     std::set<int> server_fds;
+	std::map<int, ServerConfig> serverConfigMap;
+	std::map<int, ServerConfig> clientToServergMap;
 
 public:
     Server();
@@ -37,6 +39,7 @@ public:
     void start(const std::string &host, int port);
     void stop();
     void setupServers(const ConfigParser &parser);
+    void prepareResponse(int client_fd);
     // void handleConnections(int server_fd);
     void handleConnections();
     void acceptNewConnection(int server_fd);
@@ -45,6 +48,7 @@ public:
     void handleClientRequest(int client_fd, requestParser &req);
     static void sendResponse(int client_fd, const std::string &response);
     void closeClientConnection(int client_fd);
+    // std::map<int, ServerConfig> getServerConfigMap() const;
 };
 
 int create_server_socket(const std::string &host, int port);
