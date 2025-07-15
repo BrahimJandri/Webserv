@@ -1,153 +1,73 @@
 #pragma once
 
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <map>
-#include <fstream>
-#include <sstream>
-#include <cstdlib>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <cstring>
-#include <iostream>
-#include <stdio.h>
+#include <set>
 #include <algorithm>
-#include "../HTTP/Request.hpp"
+#include <cctype>
 
-class ConfigValue;
-class LocationConfig;
-class ServerConfig;
-class ConfigParser;
-
-// Helper functions
-std::string trim(const std::string &str);
-std::vector<std::string> split(const std::string &str, char delimiter);
-std::vector<std::string> splitWhitespace(const std::string &str);
-bool isNumber(const std::string &str);
-int parseSize(const std::string &str);
-
-// Class to hold different types of configuration values
-class ConfigValue
-{
+class ConfigParser {
 private:
-    std::string stringValue;
-    int intValue;
-    bool boolValue;
-    std::vector<std::string> listValue;
-    std::map<std::string, std::string> mapValue;
-
-public:
-    enum Type
-    {
-        STRING,
-        INT,
-        BOOL,
-        LIST,
-        MAP
+    struct Location {
+        std::string path;
+        std::string root;
+        std::vector<std::string> index;
+        std::vector<std::string> allowed_methods;
+        std::string cgi_extension;
+        std::string cgi_path;
+        std::string return_directive;
+        bool autoindex;
+        
+        Location();
     };
-    Type type;
-
-    // Constructors
-    ConfigValue();
-    ConfigValue(const std::string &val);
-    ConfigValue(int val);
-    ConfigValue(bool val);
-    ConfigValue(const std::vector<std::string> &val);
-    ConfigValue(const std::map<std::string, std::string> &val);
-
-    // Getters
-    std::string asString() const;
-    int asInt() const;
-    bool asBool() const;
-    std::vector<std::string> asList() const;
-    std::map<std::string, std::string> asMap() const;
-    // Print method
-    void print() const;
-};
-
-// Class to hold location configuration
-class LocationConfig
-{
-public:
-    std::string path;
-    std::map<std::string, ConfigValue> directives;
-
-    LocationConfig();
-    LocationConfig(const std::string &p);
-
-    void addDirective(const std::string &key, const ConfigValue &value);
-
-    ConfigValue getDirective(const std::string &key) const;
-
-    void print() const;
-};
-
-// Class to hold server configuration
-class ServerConfig
-{
-public:
-    std::map<std::string, ConfigValue> directives;
-    std::map<std::string, LocationConfig> locations;
-
-    ServerConfig();
-    void addDirective(const std::string &key, const ConfigValue &value);
-
-    void addLocation(const LocationConfig &location);
-
-    ConfigValue getDirective(const std::string &key) const;
-
-    LocationConfig getLocation(const std::string &path) const;
-
-    void print() const;
-};
-
-// Main parser class
-class ConfigParser
-{
-private:
-    std::string filename;
-    std::vector<std::string> lines;
-    std::vector<ServerConfig> serverConfigs; // Changed to vector for multiple servers
-
-    void readFile();
-
-    ConfigValue parseDirectiveValue(const std::string &key, const std::string &value);
-
-    int findClosingBrace(size_t startIndex);
-
-    LocationConfig parseLocationBlock(size_t startIndex);
-
-    std::pair<std::string, std::string> parseDirectiveLine(const std::string &line);
-
-    ServerConfig parseServerBlock(size_t startIndex);
-
+    
+    struct Listen {
+        std::string host;
+        std::string port;
+        
+        Listen();
+        Listen(const std::string& h, const std::string& p);
+    };
+    
+    struct Server {
+        std::vector<Listen> listen;
+        std::string server_name;
+        std::map<std::string, std::string> error_pages;
+        std::string limit_client_body_size;
+        bool autoindex;
+        std::vector<Location> locations;
+        
+        Server();
+    };
+    
+    std::vector<Server> servers;
+    std::string content;
+    size_t pos;
+    int line_number;
+    
+    void skipWhitespace();
+    void skipComments();
+    std::string parseToken();
+    char parseSpecialChar();
+    std::string parseDirectiveValue();
+    std::vector<std::string> parseMultipleValues();
+    bool expectSemicolon();
+    void parseLocation(Location& location);
+    void parseServer(Server& server);
+    Listen parseListen(const std::string& listen_value);
+    std::string intToString(int value);
+    void validatePorts();
+    bool isAtBlockBoundary();
+    
 public:
     ConfigParser();
-    ConfigParser(const std::string &file);
-
+    void parseFile(const std::string& filename);
+    void parseString(const std::string& config_content);
     void parse();
-
-    const std::vector<ServerConfig> &getServerConfigs() const;
-
-    const ServerConfig &getServerConfig(size_t index = 0) const;
-
-    size_t getServerCount() const;
-
-    void printConfig() const;
+    void printConfig();
+    const std::vector<Server>& getServers() const;
 };
-
-std::string trim(const std::string &str);
-
-std::vector<std::string> split(const std::string &str, char delimiter);
-
-std::vector<std::string> splitWhitespace(const std::string &str);
-
-bool isNumber(const std::string &str);
-
-int parseSize(const std::string &str);
-
-int create_server_socket(const std::string &host, int port);
-void handle_requests(int server_fd, requestParser &req);
-std::string to_string_c98(size_t val);

@@ -1,528 +1,371 @@
 #include "ConfigParser.hpp"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <cstdlib>
 
-ConfigValue::ConfigValue()
-    : stringValue(""), intValue(0), boolValue(false), type(STRING) {}
 
-ConfigValue::ConfigValue(const std::string &val)
-    : stringValue(val), intValue(0), boolValue(false), type(STRING) {}
+// Location struct implementation
+ConfigParser::Location::Location() : autoindex(false) {}
 
-ConfigValue::ConfigValue(int val)
-    : stringValue(""), intValue(val), boolValue(false), type(INT) {}
+// Listen struct implementation
+ConfigParser::Listen::Listen() : host("0.0.0.0") {}
 
-ConfigValue::ConfigValue(bool val)
-    : stringValue(""), intValue(0), boolValue(val), type(INT) {}
+ConfigParser::Listen::Listen(const std::string& h, const std::string& p) : host(h), port(p) {}
 
-ConfigValue::ConfigValue(const std::vector<std::string> &val)
-    : stringValue(""), intValue(0), boolValue(false), listValue(val), type(LIST) {}
+// Server struct implementation
+ConfigParser::Server::Server() : autoindex(false) {}
 
-ConfigValue::ConfigValue(const std::map<std::string, std::string> &val)
-    : stringValue(""), intValue(0), boolValue(false), mapValue(val), type(MAP) {}
+// ConfigParser implementation
+ConfigParser::ConfigParser() : pos(0), line_number(1) {}
 
-std::string ConfigValue::asString() const
-{
-    return stringValue;
-}
-
-int ConfigValue::asInt() const
-{
-    return intValue;
-}
-
-bool ConfigValue::asBool() const
-{
-    return boolValue;
-}
-
-std::vector<std::string> ConfigValue::asList() const
-{
-    return listValue;
-}
-
-std::map<std::string, std::string> ConfigValue::asMap() const
-{
-    return mapValue;
-}
-
-void ConfigValue::print() const
-{
-    switch (type)
-    {
-    case STRING:
-        std::cout << "(" << stringValue << ")";
-        break;
-    case INT:
-        std::cout << "{" << intValue << "}";
-        break;
-    case BOOL:
-        std::cout << (boolValue ? "true" : "false");
-        break;
-    case LIST:
-        for (size_t i = 0; i < listValue.size(); ++i)
-        {
-            if (i > 0)
-                std::cout << " ";
-            std::cout << "#" << listValue[i] << "#";
+void ConfigParser::skipWhitespace() {
+    while (pos < content.length() && std::isspace(content[pos])) {
+        if (content[pos] == '\n') {
+            line_number++;
         }
-        break;
-    case MAP:
-        for (std::map<std::string, std::string>::const_iterator it = mapValue.begin();
-             it != mapValue.end(); ++it)
-        {
-            std::cout << it->first << ":" << "[" << it->second << "]" << " ";
+        pos++;
+    }
+}
+
+void ConfigParser::skipComments() {
+    skipWhitespace();
+    if (pos < content.length() && content[pos] == '#') {
+        while (pos < content.length() && content[pos] != '\n') {
+            pos++;
         }
-        break;
+        skipWhitespace();
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-LocationConfig::LocationConfig() {}
-
-LocationConfig::LocationConfig(const std::string &p) : path(p) {}
-
-void LocationConfig::addDirective(const std::string &key, const ConfigValue &value)
-{
-    directives[key] = value;
-}
-
-ConfigValue LocationConfig::getDirective(const std::string &key) const
-{
-    std::map<std::string, ConfigValue>::const_iterator it = directives.find(key);
-    if (it != directives.end())
-    {
-        return it->second;
+std::string ConfigParser::parseToken() {
+    skipComments();
+    if (pos >= content.length()) {
+        return "";
     }
-    return ConfigValue(); // Return empty string value
-}
-
-void LocationConfig::print() const
-{
-    std::cout << "    Location: " << path << std::endl;
-    for (std::map<std::string, ConfigValue>::const_iterator it = directives.begin();
-         it != directives.end(); ++it)
-    {
-        std::cout << "      " << "@" << it->first << "@: ";
-        it->second.print();
-        std::cout << std::endl;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-ServerConfig::ServerConfig() {}
-
-void ServerConfig::addDirective(const std::string &key, const ConfigValue &value)
-{
-    directives[key] = value;
-}
-
-void ServerConfig::addLocation(const LocationConfig &location)
-{
-    locations[location.path] = location;
-}
-
-ConfigValue ServerConfig::getDirective(const std::string &key) const
-{
-    std::map<std::string, ConfigValue>::const_iterator it = directives.find(key);
-    if (it != directives.end())
-    {
-        return it->second;
-    }
-    return ConfigValue(); // Return empty string value
-}
-
-LocationConfig ServerConfig::getLocation(const std::string &path) const
-{
-    std::map<std::string, LocationConfig>::const_iterator it = locations.find(path);
-    if (it != locations.end())
-    {
-        return it->second;
-    }
-    return LocationConfig(); // Return empty location
-}
-
-void ServerConfig::print() const
-{
-    std::cout << "  Server Directives:" << std::endl;
-    for (std::map<std::string, ConfigValue>::const_iterator it = directives.begin();
-         it != directives.end(); ++it)
-    {
-        std::cout << "    " << "@" << it->first << "@: ";
-        it->second.print();
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
-    std::cout << "  Locations:" << std::endl;
-    for (std::map<std::string, LocationConfig>::const_iterator it = locations.begin();
-         it != locations.end(); ++it)
-    {
-        it->second.print();
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
-
-ConfigParser::ConfigParser(const std::string &file) : filename(file) {}
-
-void ConfigParser::parse()
-{
-    readFile();
-
-    size_t i = 0;
-    while (i < lines.size())
-    {
-        std::string line = lines[i];
-
-        if (line.find("server") != std::string::npos)
-        {
-            ServerConfig serverConfig = parseServerBlock(i);
-            serverConfigs.push_back(serverConfig);
-            i = findClosingBrace(i) + 1; // Move to the next line after the closing brace
-        }
-        else
-        {
-            ++i; // Skip non-server lines
-        }
-    }
-}
-
-const std::vector<ServerConfig> &ConfigParser::getServerConfigs() const
-{
-    return serverConfigs;
-}
-
-const ServerConfig &ConfigParser::getServerConfig(size_t index) const
-{
-    if (index >= serverConfigs.size())
-    {
-        throw std::runtime_error("Server index out of bounds");
-    }
-    return serverConfigs[index];
-}
-
-size_t ConfigParser::getServerCount() const
-{
-    return serverConfigs.size();
-}
-
-void ConfigParser::printConfig() const
-{
-    std::cout << "=== CONFIGURATION WITH " << serverConfigs.size() << " SERVER(S) ===" << std::endl;
-    for (size_t i = 0; i < serverConfigs.size(); ++i)
-    {
-        std::cout << "SERVER " << (i + 1) << ":" << std::endl;
-        serverConfigs[i].print();
-        std::cout << std::endl;
-    }
-}
-
-void ConfigParser::readFile()
-{
-    std::ifstream file(filename.c_str());
-    if (!file.is_open())
-    {
-        throw std::runtime_error("Cannot open file: " + filename);
-    }
-
-    std::string line;
-    while (std::getline(file, line))
-    {
-        line = trim(line);
-        // Skip empty lines and comments
-        if (!line.empty() && line[0] != '#')
-        {
-            lines.push_back(line);
-        }
-    }
-    file.close();
-}
-
-ConfigValue ConfigParser::parseDirectiveValue(const std::string &key, const std::string &value)
-{
-    if (key == "error_page")
-    {                                                            // Handle error_page directive (format: "404 500 /error.html")
-        std::vector<std::string> parts = splitWhitespace(value); // Split value into parts by whitespace
-        if (parts.size() >= 2)
-        {                                                // Need at least error code(s) and page path
-            std::map<std::string, std::string> errorMap; // Create map to store codes and page
-            std::string codes = "";                      // String to concatenate all error codes
-            for (size_t i = 0; i < parts.size() - 1; ++i)
-            { // Iterate through all parts except the last (page path)
-                if (i > 0)
-                    codes += " ";  // Add space separator between codes
-                codes += parts[i]; // Append current error code to codes string
+    
+    std::string token;
+    
+    // Handle quoted strings
+    if (content[pos] == '"' || content[pos] == '\'') {
+        char quote = content[pos];
+        pos++;
+        while (pos < content.length() && content[pos] != quote) {
+            if (content[pos] == '\\' && pos + 1 < content.length()) {
+                pos++; // Skip escape character
             }
-            errorMap["codes"] = codes;                  // Store concatenated codes in map
-            errorMap["page"] = parts[parts.size() - 1]; // Store page path as last element
-            return ConfigValue(errorMap);               // Return ConfigValue containing the error map
+            token += content[pos];
+            pos++;
         }
-    }
-    else if (key == "allowed_methods")
-    {                                               // Handle allowed_methods directive (format: "GET POST PUT")
-        return ConfigValue(splitWhitespace(value)); // Return list of methods split by whitespace
-    }
-    else if (key == "port")
-    { // Handle port directive (format: "8080")
-        if (isNumber(value))
-        {                                  // Check if value is a valid number
-            std::istringstream iss(value); // Create string stream for parsing
-            int port;                      // Variable to store parsed port number
-            iss >> port;                   // Extract integer from string stream
-            return ConfigValue(port);      // Return ConfigValue containing the port number
+        if (pos < content.length()) {
+            pos++; // Skip closing quote
         }
+        return token;
     }
-    else if (key == "limit_client_body_size")
-    {                                         // Handle client body size limit (format: "10M" or "1024")
-        return ConfigValue(parseSize(value)); // Parse size string (handles MB suffix) and return as int
+    
+    // Handle regular tokens
+    while (pos < content.length() && 
+           !std::isspace(content[pos]) && 
+           content[pos] != ';' && 
+           content[pos] != '{' && 
+           content[pos] != '}' &&
+           content[pos] != '#') {
+        token += content[pos];
+        pos++;
     }
-    else if (key == "autoindex" || key == "upload_enable")
-    {                                                                                        // Handle boolean directives
-        std::string lowerValue = value;                                                      // Create copy of value for case conversion
-        std::transform(lowerValue.begin(), lowerValue.end(), lowerValue.begin(), ::tolower); // Convert to lowercase
-        return ConfigValue(lowerValue == "on" || lowerValue == "true");                      // Return boolean based on value
-    }
-
-    return ConfigValue(value);
+    
+    return token;
 }
 
-std::pair<std::string, std::string> ConfigParser::parseDirectiveLine(const std::string &line)
-{
-    std::string cleanLine = line;
-
-    // Remove trailing semicolon
-    if (!cleanLine.empty() && cleanLine[cleanLine.length() - 1] == ';')
-    {
-        cleanLine = cleanLine.substr(0, cleanLine.length() - 1);
+char ConfigParser::parseSpecialChar() {
+    skipComments();
+    if (pos < content.length() && 
+        (content[pos] == ';' || content[pos] == '{' || content[pos] == '}')) {
+        return content[pos++];
     }
-
-    cleanLine = trim(cleanLine);
-    if (cleanLine.empty())
-    {
-        return std::make_pair("", "");
-    }
-
-    size_t spacePos = cleanLine.find(' ');
-    if (spacePos == std::string::npos)
-    {
-        return std::make_pair("", "");
-    }
-
-    std::string key = cleanLine.substr(0, spacePos);
-    std::string value = trim(cleanLine.substr(spacePos + 1));
-
-    return std::make_pair(key, value);
+    return '\0';
 }
 
-ServerConfig ConfigParser::parseServerBlock(size_t startIndex)
-{
-    ServerConfig serverConfig;
-    int endIndex = findClosingBrace(startIndex);
-
-    size_t i = startIndex + 1; // Skip the server { line
-
-    while (i <= static_cast<size_t>(endIndex))
-    {
-        std::string line = lines[i];
-
-        if (line.find("location") != std::string::npos)
-        {
-            LocationConfig location = parseLocationBlock(i);
-            serverConfig.addLocation(location);
-            i = findClosingBrace(i) + 1;
+std::string ConfigParser::parseDirectiveValue() {
+    std::string value;
+    std::string token;
+    
+    while ((token = parseToken()) != "") {
+        if (!value.empty()) {
+            value += " ";
         }
-        else if (line.find("}") != std::string::npos)
-        {
+        value += token;
+        
+        skipComments();
+        if (pos < content.length() && content[pos] == ';') {
             break;
         }
-        else
-        {
-            std::pair<std::string, std::string> directive = parseDirectiveLine(line);
-            if (!directive.first.empty())
-            {
-                ConfigValue value = parseDirectiveValue(directive.first, directive.second);
-                serverConfig.addDirective(directive.first, value);
+    }
+    
+    return value;
+}
+
+std::vector<std::string> ConfigParser::parseMultipleValues() {
+    std::vector<std::string> values;
+    std::string token;
+    
+    while ((token = parseToken()) != "") {
+        values.push_back(token);
+        
+        skipComments();
+        if (pos < content.length() && content[pos] == ';') {
+            break;
+        }
+    }
+    
+    return values;
+}
+
+bool ConfigParser::expectSemicolon() {
+    skipComments();
+    if (pos < content.length() && content[pos] == ';') {
+        pos++; // consume the semicolon
+        return true;
+    }
+    return false;
+}
+
+bool ConfigParser::isAtBlockBoundary() {
+    skipComments();
+    return (pos < content.length() && (content[pos] == '{' || content[pos] == '}'));
+}
+
+void ConfigParser::parseLocation(Location& location) {
+    if (parseSpecialChar() != '{') {
+        throw std::runtime_error("Expected '{' after location directive at line " + 
+                               intToString(line_number));
+    }
+    
+    std::string directive;
+    while (true) {
+        // Check if we're at the end of the block before trying to parse a directive
+        skipComments();
+        if (pos < content.length() && content[pos] == '}') {
+            break;
+        }
+        
+        directive = parseToken();
+        if (directive.empty()) {
+            throw std::runtime_error("Unexpected end of file in location block at line " + 
+                                   intToString(line_number));
+        }
+        
+        if (directive == "root") {
+            location.root = parseDirectiveValue();
+        } else if (directive == "index") {
+            location.index = parseMultipleValues();
+        } else if (directive == "allowed_methods") {
+            location.allowed_methods = parseMultipleValues();
+        } else if (directive == "autoindex") {
+            std::string value = parseDirectiveValue();
+            location.autoindex = (value == "on");
+        } else if (directive == "cgi_extension") {
+            location.cgi_extension = parseDirectiveValue();
+        } else if (directive == "cgi_path") {
+            location.cgi_path = parseDirectiveValue();
+        } else if (directive == "return") {
+            location.return_directive = parseDirectiveValue();
+        } else {
+            // Skip unknown directive
+            parseDirectiveValue();
+        }
+        
+        if (!expectSemicolon()) {
+            throw std::runtime_error("Expected ';' after directive '" + directive + 
+                                   "' at line " + intToString(line_number));
+        }
+    }
+    
+    if (parseSpecialChar() != '}') {
+        throw std::runtime_error("Expected '}' to close location block at line " + 
+                               intToString(line_number));
+    }
+}
+
+void ConfigParser::parseServer(Server& server) {
+    if (parseSpecialChar() != '{') {
+        throw std::runtime_error("Expected '{' after server directive at line " + 
+                               intToString(line_number));
+    }
+    
+    std::string directive;
+    while (true) {
+        // Check if we're at the end of the block before trying to parse a directive
+        skipComments();
+        if (pos < content.length() && content[pos] == '}') {
+            break;
+        }
+        
+        directive = parseToken();
+        if (directive.empty()) {
+            throw std::runtime_error("Unexpected end of file in server block at line " + 
+                                   intToString(line_number));
+        }
+        
+        if (directive == "listen") {
+            std::string listen_value = parseDirectiveValue();
+            Listen listen_info = parseListen(listen_value);
+            server.listen.push_back(listen_info);
+        } else if (directive == "server_name") {
+            server.server_name = parseDirectiveValue();
+        } else if (directive == "error_page") {
+            std::vector<std::string> values = parseMultipleValues();
+            if (values.size() >= 2) {
+                std::string error_page = values.back();
+                for (size_t i = 0; i < values.size() - 1; i++) {
+                    server.error_pages[values[i]] = error_page;
+                }
             }
-            ++i;
+        } else if (directive == "limit_client_body_size") {
+            server.limit_client_body_size = parseDirectiveValue();
+        } else if (directive == "autoindex") {
+            std::string value = parseDirectiveValue();
+            server.autoindex = (value == "on");
+        } else if (directive == "location") {
+            Location location;
+            location.path = parseToken();
+            parseLocation(location);
+            server.locations.push_back(location);
+            continue; // Skip semicolon check for location block
+        } else {
+            // Skip unknown directive
+            parseDirectiveValue();
+        }
+        
+        if (!expectSemicolon()) {
+            throw std::runtime_error("Expected ';' after directive '" + directive + 
+                                   "' at line " + intToString(line_number));
         }
     }
-
-    return serverConfig;
+    
+    if (parseSpecialChar() != '}') {
+        throw std::runtime_error("Expected '}' to close server block at line " + 
+                               intToString(line_number));
+    }
 }
 
-LocationConfig ConfigParser::parseLocationBlock(size_t startIndex)
-{
-    std::string locationLine = lines[startIndex]; // Get the location declaration line
-
-    // Extract location path
-    size_t locationPos = locationLine.find("location"); // Find the "location" keyword in the line
-    if (locationPos == std::string::npos)
-    {                                                           // If "location" keyword is not found
-        throw std::runtime_error("Invalid location directive"); // Throw error for invalid syntax
+ConfigParser::Listen ConfigParser::parseListen(const std::string& listen_value) {
+    size_t colon_pos = listen_value.find(':');
+    
+    if (colon_pos != std::string::npos) {
+        // Format: host:port
+        std::string host = listen_value.substr(0, colon_pos);
+        std::string port = listen_value.substr(colon_pos + 1);
+        return Listen(host, port);
+    } else {
+        // Format: port only, use default host
+        return Listen("0.0.0.0", listen_value);
     }
-
-    std::string remainder = locationLine.substr(locationPos + 8); // Extract everything after "location" (8 characters)
-    remainder = trim(remainder);                                  // Remove leading/trailing whitespace from the remainder
-
-    std::string path;                      // Variable to store the extracted path
-    size_t spacePos = remainder.find(' '); // Find first space in the remainder
-    size_t bracePos = remainder.find('{'); // Find opening brace in the remainder
-
-    // Determine path based on whether space or brace comes first
-    if (spacePos != std::string::npos && (bracePos == std::string::npos || spacePos < bracePos))
-    {
-        path = remainder.substr(0, spacePos); // Path ends at the first space
-    }
-    else if (bracePos != std::string::npos)
-    {
-        path = remainder.substr(0, bracePos); // Path ends at the opening brace
-    }
-    else
-    {
-        path = remainder; // Entire remainder is the path
-    }
-
-    path = trim(path);             // Remove any whitespace from the extracted path
-    LocationConfig location(path); // Create a new LocationConfig object with the path
-
-    int endIndex = findClosingBrace(startIndex); // Find the line index of the matching closing brace
-
-    // Iterate through all lines within the location block
-    for (int i = static_cast<int>(startIndex); i <= endIndex; ++i)
-    {
-        std::string line = lines[i]; // Get the current line
-
-        // Skip location line and braces
-        if (line.find("location") != std::string::npos || // Skip lines containing "location"
-            line.find("{") != std::string::npos ||        // Skip lines containing opening brace
-            line.find("}") != std::string::npos)
-        {             // Skip lines containing closing brace
-            continue; // Move to next iteration
-        }
-
-        // Parse directive
-        std::pair<std::string, std::string> directive = parseDirectiveLine(line); // Parse the line into key-value pair
-        if (!directive.first.empty())
-        {                                                                               // If a valid directive was found
-            ConfigValue value = parseDirectiveValue(directive.first, directive.second); // Convert value to appropriate type
-            location.addDirective(directive.first, value);                              // Add the directive to the location config
-        }
-    }
-
-    return location; // Return the populated LocationConfig object
 }
 
-int ConfigParser::findClosingBrace(size_t startIndex)
-{
-    int braceCount = 0;
-    bool foundOpening = false;
+std::string ConfigParser::intToString(int value) {
+    std::ostringstream oss;
+    oss << value;
+    return oss.str();
+}
 
-    for (size_t i = startIndex; i < lines.size(); ++i)
-    {
-        std::string line = lines[i];
-
-        for (size_t j = 0; j < line.length(); ++j)
-        {
-            if (line[j] == '{')
-            {
-                braceCount++;
-                foundOpening = true;
+void ConfigParser::validatePorts() {
+    std::set<std::string> used_ports;
+    
+    for (size_t i = 0; i < servers.size(); i++) {
+        for (size_t j = 0; j < servers[i].listen.size(); j++) {
+            const Listen& listen_info = servers[i].listen[j];
+            std::string port_key = listen_info.host + ":" + listen_info.port;
+            
+            if (used_ports.find(port_key) != used_ports.end()) {
+                throw std::runtime_error("Duplicate host:port found: " + port_key);
             }
-            else if (line[j] == '}')
-            {
-                braceCount--;
+            used_ports.insert(port_key);
+        }
+    }
+}
+
+void ConfigParser::parseFile(const std::string& filename) {
+    std::ifstream file(filename.c_str());
+    if (!file.is_open()) {
+        throw std::runtime_error("Cannot open file: " + filename);
+    }
+    
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    content = buffer.str();
+    file.close();
+    
+    parse();
+}
+
+void ConfigParser::parseString(const std::string& config_content) {
+    content = config_content;
+    pos = 0;
+    line_number = 1;
+    servers.clear();
+    parse();
+}
+
+void ConfigParser::parse() {
+    std::string directive;
+    while ((directive = parseToken()) != "") {
+        if (directive == "server") {
+            Server server;
+            parseServer(server);
+            servers.push_back(server);
+        } else {
+            throw std::runtime_error("Unknown directive: " + directive + 
+                                   " at line " + intToString(line_number));
+        }
+    }
+    
+    validatePorts();
+}
+
+void ConfigParser::printConfig() {
+    for (size_t i = 0; i < servers.size(); i++) {
+        std::cout << "Server " << i + 1 << ":" << std::endl;
+        std::cout << "  Server name: " << servers[i].server_name << std::endl;
+        std::cout << "  Listen: ";
+        for (size_t j = 0; j < servers[i].listen.size(); j++) {
+            const Listen& listen_info = servers[i].listen[j];
+            std::cout << "Host: " << listen_info.host << " Port: " << listen_info.port;
+            if (j < servers[i].listen.size() - 1) std::cout << ", ";
+        }
+        std::cout << std::endl;
+        
+        std::cout << "  Limit client body size: " << servers[i].limit_client_body_size << std::endl;
+        std::cout << "  Autoindex: " << (servers[i].autoindex ? "on" : "off") << std::endl;
+        
+        std::cout << "  Error pages:" << std::endl;
+        for (std::map<std::string, std::string>::const_iterator it = servers[i].error_pages.begin(); 
+             it != servers[i].error_pages.end(); ++it) {
+            std::cout << "    " << it->first << " -> " << it->second << std::endl;
+        }
+        
+        std::cout << "  Locations:" << std::endl;
+        for (size_t j = 0; j < servers[i].locations.size(); j++) {
+            const Location& loc = servers[i].locations[j];
+            std::cout << "    Path: " << loc.path << std::endl;
+            std::cout << "      Root: " << loc.root << std::endl;
+            std::cout << "      Index: ";
+            for (size_t k = 0; k < loc.index.size(); k++) {
+                std::cout << loc.index[k];
+                if (k < loc.index.size() - 1) std::cout << ", ";
             }
+            std::cout << std::endl;
+            std::cout << "      Allowed methods: ";
+            for (size_t k = 0; k < loc.allowed_methods.size(); k++) {
+                std::cout << loc.allowed_methods[k];
+                if (k < loc.allowed_methods.size() - 1) std::cout << ", ";
+            }
+            std::cout << std::endl;
+            std::cout << "      CGI extension: " << loc.cgi_extension << std::endl;
+            std::cout << "      CGI path: " << loc.cgi_path << std::endl;
+            std::cout << "      Return: " << loc.return_directive << std::endl;
+            std::cout << "      Autoindex: " << (loc.autoindex ? "on" : "off") << std::endl;
         }
-
-        if (foundOpening && braceCount == 0)
-        {
-            return static_cast<int>(i);
-        }
+        std::cout << std::endl;
     }
-
-    throw std::runtime_error("Unclosed block found");
 }
 
-std::string trim(const std::string &str)
-{
-    size_t start = str.find_first_not_of(" \t\r\n");
-    if (start == std::string::npos)
-        return "";
-
-    size_t end = str.find_last_not_of(" \t\r\n");
-    return str.substr(start, end - start + 1);
-}
-
-std::vector<std::string> split(const std::string &str, char delimiter)
-{
-    std::vector<std::string> result;
-    std::stringstream ss(str);
-    std::string item;
-
-    while (std::getline(ss, item, delimiter))
-    {
-        result.push_back(trim(item));
-    }
-
-    return result;
-}
-
-std::vector<std::string> splitWhitespace(const std::string &str)
-{
-    std::vector<std::string> result;
-    std::stringstream ss(str);
-    std::string item;
-
-    while (ss >> item)
-    {
-        result.push_back(item);
-    }
-
-    return result;
-}
-
-bool isNumber(const std::string &str)
-{
-    if (str.empty())
-        return false;
-
-    for (size_t i = 0; i < str.length(); ++i)
-    {
-        if (!std::isdigit(str[i]))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-int parseSize(const std::string &str)
-{
-    if (str.empty())
-        return 0;
-
-    if (str[str.length() - 1] == 'M' || str[str.length() - 1] == 'm')
-    {
-        std::string numberPart = str.substr(0, str.length() - 1);
-        if (isNumber(numberPart))
-        {
-            std::istringstream iss(numberPart);
-            int value;
-            iss >> value;
-            return value * 1024 * 1024; // Convert MB to bytes
-        }
-    }
-    else if (isNumber(str))
-    {
-        std::istringstream iss(str);
-        int value;
-        iss >> value;
-        return value;
-    }
-
-    return 0;
+const std::vector<ConfigParser::Server>& ConfigParser::getServers() const {
+    return servers;
 }
