@@ -11,8 +11,8 @@
 #include <cctype>
 
 class ConfigParser {
-private:
-    struct Location {
+public:
+    struct LocationConfig {
         std::string path;
         std::string root;
         std::vector<std::string> index;
@@ -22,7 +22,7 @@ private:
         std::string return_directive;
         bool autoindex;
         
-        Location();
+        LocationConfig();
     };
     
     struct Listen {
@@ -33,18 +33,18 @@ private:
         Listen(const std::string& h, const std::string& p);
     };
     
-    struct Server {
+    struct ServerConfig {
         std::vector<Listen> listen;
         std::string server_name;
         std::map<std::string, std::string> error_pages;
         std::string limit_client_body_size;
         bool autoindex;
-        std::vector<Location> locations;
+        std::vector<LocationConfig> locations;
         
-        Server();
+        ServerConfig();
     };
     
-    std::vector<Server> servers;
+    std::vector<ServerConfig> servers;
     std::string content;
     size_t pos;
     int line_number;
@@ -56,18 +56,22 @@ private:
     std::string parseDirectiveValue();
     std::vector<std::string> parseMultipleValues();
     bool expectSemicolon();
-    void parseLocation(Location& location);
-    void parseServer(Server& server);
+    void parseLocation(LocationConfig& location);
+    void parseServer(ServerConfig& server);
     Listen parseListen(const std::string& listen_value);
     std::string intToString(int value);
     void validatePorts();
     bool isAtBlockBoundary();
     
-public:
+
     ConfigParser();
     void parseFile(const std::string& filename);
     void parseString(const std::string& config_content);
     void parse();
     void printConfig();
-    const std::vector<Server>& getServers() const;
+    const std::vector<ServerConfig>& getServers() const;
+
+    size_t  getListenCount() const;  
+
+    size_t getServerCount() const;
 };

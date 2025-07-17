@@ -9,8 +9,8 @@
 int start_server(const std::string &config_path)
 {
     Utils::log("Starting Webserv with configuration: " + config_path, AnsiColor::GREEN);
-    ConfigParser parser(config_path);
-    parser.parse();
+    ConfigParser parser;
+    parser.parseFile(config_path);
 
     size_t serverCount = parser.getServerCount();
     Utils::log("Found " + Utils::intToString(serverCount) + " server configurations", AnsiColor::CYAN);

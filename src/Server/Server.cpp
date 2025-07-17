@@ -21,55 +21,82 @@ std::string to_string_c98(size_t val)
 }
 
 
-void Server::prepareResponse(int client_fd)
-{
-	Client *client = clients[client_fd];
-	if (!client)
-	{
-		std::cerr << "Client not found for fd: " << client_fd << std::endl;
-		return;
-	}
-	ServerConfig &serverConfig = clientToServergMap[client_fd];
-	serverConfig.print(); // Print server config for debugging
+// void Server::prepareResponse(int client_fd)
+// {
+// 	Client *client = clients[client_fd];
+// 	if (!client)
+// 	{
+// 		std::cerr << "Client not found for fd: " << client_fd << std::endl;
+// 		return;
+// 	}
+// 	ServerConfig &serverConfig = clientToServergMap[client_fd];
+// 	serverConfig.print(); // Print server config for debugging
 
-}
+// }
 
 
 
 void Server::setupServers(const ConfigParser &parser)
 {
-	size_t serverCount = parser.getServerCount();
+    const std::vector<ConfigParser::ServerConfig> &serverConfigs = parser.getServers();
+    std::set<std::string> createdHostPorts; // To avoid duplicate sockets
 
-	for (size_t i = 0; i < serverCount; ++i)
-	{
-		const ServerConfig &servers = parser.getServerConfig(i);
-		std::string host = servers.getDirective("host").asString();
-		int port = servers.getDirective("port").asInt();
+    for (size_t i = 0; i < serverConfigs.size(); ++i)
+    {
+        const ConfigParser::ServerConfig &server = serverConfigs[i];
 
-		Utils::log("Setting up server on " + host + ":" + Utils::intToString(port), AnsiColor::YELLOW);
+        for (size_t j = 0; j < server.listen.size(); ++j)
+        {
+            const ConfigParser::Listen &listen = server.listen[j];
+            std::string host = listen.host;
+            std::string port = listen.port;
+            std::string hostPortKey = host + ":" + port;
 
-		int server_fd = create_server_socket(host, port);
-		if (server_fd == -1)
-		{
-			std::cerr << "Failed to create server socket." << std::endl;
-			exit(EXIT_FAILURE);
-		}
-		serverConfigMap[server_fd] = servers; // Store the server configuration based on the fd of server
-		// Register the server fd with epoll
-		struct epoll_event ev;
-		ev.events = EPOLLIN;
-		ev.data.fd = server_fd;
+            if (createdHostPorts.count(hostPortKey))
+                continue; // Skip already created sockets
 
-		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) == -1)
-		{
-			perror("epoll_ctl: server_fd");
-			exit(EXIT_FAILURE);
-		}
+            Utils::log("Setting up server on " + host + ":" + port, AnsiColor::YELLOW);
 
-		std::cout << "Listening on " << host << ":" << port << std::endl;
+            int server_fd = create_server_socket(host, std::atoi(port.c_str()));
+            if (server_fd == -1)
+            {
+                std::cerr << "Failed to create server socket." << std::endl;
+                exit(EXIT_FAILURE);
+            }
 
-		server_fds.insert(server_fd); // Store this server socket for use in handleConnections
-	}
+            // Find all ServerConfigs that listen on this host:port
+            std::vector<ConfigParser::ServerConfig> matchedConfigs;
+            for (size_t k = 0; k < serverConfigs.size(); ++k)
+            {
+                const ConfigParser::ServerConfig &other = serverConfigs[k];
+                for (size_t l = 0; l < other.listen.size(); ++l)
+                {
+                    if (other.listen[l].host == host && other.listen[l].port == port)
+                    {
+                        matchedConfigs.push_back(other);
+                        break;
+                    }
+                }
+            }
+
+            serverConfigMap[server_fd] = matchedConfigs;
+
+            // Register with epoll
+            struct epoll_event ev;
+            ev.events = EPOLLIN;
+            ev.data.fd = server_fd;
+
+            if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) == -1)
+            {
+                perror("epoll_ctl: server_fd");
+                exit(EXIT_FAILURE);
+            }
+
+            std::cout << "Listening on " << host << ":" << port << std::endl;
+            server_fds.insert(server_fd);
+            createdHostPorts.insert(hostPortKey); // Mark as created
+        }
+    }
 }
 
 Server::Server()
@@ -92,13 +119,26 @@ int create_server_socket(const std::string &host, int port)
 	}
 
 	int opt = 1;
-	setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+	// setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); OLD
+	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
+    {
+        perror("setsockopt SO_REUSEADDR");
+        close(server_fd);
+        return -1;
+    }
 
 	struct sockaddr_in addr;
 	std::memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
-	addr.sin_addr.s_addr = inet_addr(host.c_str());
+	//addr.sin_addr.s_addr = inet_addr(host.c_str());CHANGED TO THE ABOVE
+	if (host == "0.0.0.0" || host.empty())
+        addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    else
+	{
+        addr.sin_addr.s_addr = inet_addr(host.c_str());
+	}
+
 
 	if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
 	{
@@ -106,6 +146,7 @@ int create_server_socket(const std::string &host, int port)
 		close(server_fd);
 		return -1;
 	}
+
 
 	if (listen(server_fd, 10) == -1)
 	{
@@ -115,7 +156,24 @@ int create_server_socket(const std::string &host, int port)
 	}
 
 	return server_fd;
+
+
+    // Set non-blocking mode
+    /*int flags = fcntl(server_fd, F_GETFL, 0);
+    if (flags == -1)
+    {
+        perror("fcntl F_GETFL");
+        close(server_fd);
+        return -1;
+    }
+    if (fcntl(server_fd, F_SETFL, flags | O_NONBLOCK) == -1)
+    {
+        perror("fcntl F_SETFL O_NONBLOCK");
+        close(server_fd);
+        return -1;
+    }*/
 }
+
 
 // Helper function to send an HTTP response (status line and headers only)
 void send_http_headers(int client_fd, const std::string &status_line,
@@ -298,37 +356,48 @@ void Server::acceptNewConnection(int server_fd)
 	struct sockaddr_in client_addr;
 	socklen_t client_len = sizeof(client_addr);
 
-	int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_len);
-	if (client_fd == -1)
+	while (true)
 	{
-		perror("accept");
-		return;
+		int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_len);
+		if (client_fd == -1)
+		{
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				break; // No more connections to accept
+			perror("accept");
+			break;
+		}
+
+		// Set non-blocking
+		int flags = fcntl(client_fd, F_GETFL, 0);
+		if(flags == -1 || fcntl(client_fd, F_SETFL, flags | O_NONBLOCK) == -1)
+		{
+			perror("fcntl");
+			close(client_fd);
+			continue;
+		}
+
+		// Add client to epoll
+		struct epoll_event event;
+		event.events = EPOLLIN | EPOLLET;
+		event.data.fd = client_fd;
+
+		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &event) == -1)
+		{
+			perror("epoll_ctl: client_fd");
+			close(client_fd);
+			continue;
+		}
+
+		// Store client
+		clients[client_fd] = new Client(client_fd);
+		clientToServergMap[client_fd] = serverConfigMap[server_fd][0];
+
+		std::cout << "New connection from " << inet_ntoa(client_addr.sin_addr)
+				  << ":" << ntohs(client_addr.sin_port)
+				  << " (fd: " << client_fd << ")" << std::endl;
 	}
-
-	// Set non-blocking
-	int flags = fcntl(client_fd, F_GETFL, 0);
-	fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
-
-	// Add client to epoll
-	struct epoll_event event;
-	event.events = EPOLLIN | EPOLLET; // Edge triggered
-	event.data.fd = client_fd;
-
-	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &event) == -1)
-	{
-		perror("epoll_ctl: client_fd");
-		close(client_fd);
-		return;
-	}
-
-	// Create client object and store it
-	clients[client_fd] = new Client(client_fd);
-	clientToServergMap[client_fd] = serverConfigMap[server_fd]; // Associate client with server config
-
-	std::cout << "New connection from " << inet_ntoa(client_addr.sin_addr)
-			  << ":" << ntohs(client_addr.sin_port)
-			  << " (fd: " << client_fd << ")" << std::endl;
 }
+
 
 void Server::handleClientRead(int client_fd)
 {
@@ -380,7 +449,7 @@ void Server::handleClientRead(int client_fd)
 	if (clients[client_fd]->processRequest())
 	{
 		// Request is complete, prepare response
-		prepareResponse(client_fd);
+		// prepareResponse(client_fd);
 
 		// Update epoll to watch for write readiness
 		struct epoll_event event;
@@ -393,6 +462,51 @@ void Server::handleClientRead(int client_fd)
 			closeClientConnection(client_fd);
 		}
 	}
+	/*
+	void Server::handleClientRead(int client_fd)
+{
+	char buffer[BUFFER_SIZE];
+	ssize_t bytes_read;
+
+	while (true)
+	{
+		bytes_read = recv(client_fd, buffer, sizeof(buffer), 0);
+		if (bytes_read == -1)
+		{
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				break; // No more data (non-blocking mode)
+			perror("recv");
+			closeClient(client_fd);
+			return;
+		}
+		else if (bytes_read == 0)
+		{
+			// Client closed connection
+			std::cout << "Client " << client_fd << " disconnected." << std::endl;
+			closeClient(client_fd);
+			return;
+		}
+
+		// Append received data to client's buffer
+		clients[client_fd]->appendToBuffer(buffer, bytes_read);
+	}
+
+	// Try to parse request
+	if (clients[client_fd]->isRequestComplete())
+	{
+		clients[client_fd]->prepareResponse();
+
+		// Modify epoll to wait for EPOLLOUT
+		struct epoll_event event;
+		event.events = EPOLLOUT | EPOLLET;
+		event.data.fd = client_fd;
+		if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client_fd, &event) == -1)
+		{
+			perror("epoll_ctl: EPOLLOUT");
+			closeClient(client_fd);
+		}
+	}
+	*/
 }
 
 void Server::handleClientWrite(int client_fd)

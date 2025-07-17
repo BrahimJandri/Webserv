@@ -21,6 +21,7 @@
 #include "../Config/ConfigParser.hpp"
 
 class Client; // Forward declaration to avoid circular dependency
+// class ServerConfig;
 
 class Server
 {
@@ -29,8 +30,8 @@ private:
     std::map<int, Client *> clients;
     static const int MAX_EVENTS = 64;
     std::set<int> server_fds;
-	std::map<int, ServerConfig> serverConfigMap;
-	std::map<int, ServerConfig> clientToServergMap;
+    std::map<int, std::vector<ConfigParser::ServerConfig> > serverConfigMap; //EDITED BY RACHID
+	std::map<int, ConfigParser::ServerConfig> clientToServergMap;
 
 public:
     Server();
