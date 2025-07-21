@@ -36,6 +36,7 @@ public:
     struct ServerConfig {
         std::vector<Listen> listen;
         std::string server_name;
+        std::string root;
         std::map<std::string, std::string> error_pages;
         std::string limit_client_body_size;
         bool autoindex;
@@ -61,6 +62,7 @@ public:
     Listen parseListen(const std::string& listen_value);
     std::string intToString(int value);
     void validatePorts();
+    void validateRequiredDirectives();
     bool isAtBlockBoundary();
     
 

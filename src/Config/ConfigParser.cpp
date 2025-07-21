@@ -28,14 +28,22 @@ void ConfigParser::skipWhitespace()
 
 void ConfigParser::skipComments()
 {
-    skipWhitespace();
-    if (pos < content.length() && content[pos] == '#')
+    while (true)
     {
-        while (pos < content.length() && content[pos] != '\n')
-        {
-            pos++;
-        }
         skipWhitespace();
+        if (pos < content.length() && content[pos] == '#')
+        {
+            // Skip the entire comment line
+            while (pos < content.length() && content[pos] != '\n')
+            {
+                pos++;
+            }
+            // Continue the loop to check for more comments
+        }
+        else
+        {
+            break; // No more comments, exit the loop
+        }
     }
 }
 
@@ -103,6 +111,15 @@ std::string ConfigParser::parseDirectiveValue()
 
     while ((token = parseToken()) != "")
     {
+        // Check if this token looks like a directive keyword (this would indicate missing semicolon)
+        if (value.empty() == false && (token == "server_name" || token == "listen" || token == "error_page" || 
+            token == "limit_client_body_size" || token == "autoindex" || token == "location" || 
+            token == "root" || token == "index" || token == "allowed_methods" || token == "cgi_extension" || 
+            token == "cgi_path" || token == "return"))
+        {
+            throw std::runtime_error("Missing semicolon after directive value '" + value + "' before '" + token + "' at line " + intToString(line_number));
+        }
+
         if (!value.empty())
         {
             value += " ";
@@ -113,6 +130,12 @@ std::string ConfigParser::parseDirectiveValue()
         if (pos < content.length() && content[pos] == ';')
         {
             break;
+        }
+        
+        // Check if we reached end of block or end of file without semicolon
+        if (pos >= content.length() || content[pos] == '}' || content[pos] == '{')
+        {
+            throw std::runtime_error("Missing semicolon after directive value '" + value + "' at line " + intToString(line_number));
         }
     }
 
@@ -126,12 +149,27 @@ std::vector<std::string> ConfigParser::parseMultipleValues()
 
     while ((token = parseToken()) != "")
     {
+        // Check if this token looks like a directive keyword (this would indicate missing semicolon)
+        if (!values.empty() && (token == "server_name" || token == "listen" || token == "error_page" || 
+            token == "limit_client_body_size" || token == "autoindex" || token == "location" || 
+            token == "root" || token == "index" || token == "allowed_methods" || token == "cgi_extension" || 
+            token == "cgi_path" || token == "return"))
+        {
+            throw std::runtime_error("Missing semicolon after directive values before '" + token + "' at line " + intToString(line_number));
+        }
+
         values.push_back(token);
 
         skipComments();
         if (pos < content.length() && content[pos] == ';')
         {
             break;
+        }
+        
+        // Check if we reached end of block or end of file without semicolon
+        if (pos >= content.length() || content[pos] == '}' || content[pos] == '{')
+        {
+            throw std::runtime_error("Missing semicolon after directive values at line " + intToString(line_number));
         }
     }
 
@@ -182,15 +220,30 @@ void ConfigParser::parseLocation(LocationConfig &location)
 
         if (directive == "root")
         {
-            location.root = parseDirectiveValue();
+            std::string root_value = parseDirectiveValue();
+            if (root_value.empty())
+            {
+                throw std::runtime_error("'root' directive cannot be empty in location block at line " + intToString(line_number));
+            }
+            location.root = root_value;
         }
         else if (directive == "index")
         {
-            location.index = parseMultipleValues();
+            std::vector<std::string> index_values = parseMultipleValues();
+            if (index_values.empty())
+            {
+                throw std::runtime_error("'index' directive cannot be empty in location block at line " + intToString(line_number));
+            }
+            location.index = index_values;
         }
         else if (directive == "allowed_methods")
         {
-            location.allowed_methods = parseMultipleValues();
+            std::vector<std::string> methods = parseMultipleValues();
+            if (methods.empty())
+            {
+                throw std::runtime_error("'allowed_methods' directive cannot be empty in location block at line " + intToString(line_number));
+            }
+            location.allowed_methods = methods;
         }
         else if (directive == "autoindex")
         {
@@ -257,6 +310,10 @@ void ConfigParser::parseServer(ServerConfig &server)
         if (directive == "listen")
         {
             std::string listen_value = parseDirectiveValue();
+            if (listen_value.empty())
+            {
+                throw std::runtime_error("'listen' directive cannot be empty at line " + intToString(line_number));
+            }
             Listen listen_info = parseListen(listen_value);
             server.listen.push_back(listen_info);
         }
@@ -264,9 +321,22 @@ void ConfigParser::parseServer(ServerConfig &server)
         {
             server.server_name = parseDirectiveValue();
         }
+        else if (directive == "root")
+        {
+            std::string root_value = parseDirectiveValue();
+            if (root_value.empty())
+            {
+                throw std::runtime_error("'root' directive cannot be empty at line " + intToString(line_number));
+            }
+            server.root = root_value;
+        }
         else if (directive == "error_page")
         {
             std::vector<std::string> values = parseMultipleValues();
+            if (values.empty())
+            {
+                throw std::runtime_error("'error_page' directive cannot be empty at line " + intToString(line_number));
+            }
             if (values.size() >= 2)
             {
                 std::string error_page = values.back();
@@ -274,6 +344,10 @@ void ConfigParser::parseServer(ServerConfig &server)
                 {
                     server.error_pages[values[i]] = error_page;
                 }
+            }
+            else
+            {
+                throw std::runtime_error("'error_page' directive requires at least two values (error_code and page) at line " + intToString(line_number));
             }
         }
         else if (directive == "limit_client_body_size")
@@ -340,20 +414,90 @@ std::string ConfigParser::intToString(int value)
 
 void ConfigParser::validatePorts()
 {
-    std::set<std::string> used_ports;
+    std::map<std::string, std::string> port_to_server_name; // port_key -> server_name
 
     for (size_t i = 0; i < servers.size(); i++)
     {
+        std::set<std::string> server_ports; // Track ports within this server
+        
         for (size_t j = 0; j < servers[i].listen.size(); j++)
         {
             const Listen &listen_info = servers[i].listen[j];
             std::string port_key = listen_info.host + ":" + listen_info.port;
 
-            if (used_ports.find(port_key) != used_ports.end())
+            // Check for duplicates within the same server
+            if (server_ports.find(port_key) != server_ports.end())
             {
-                throw std::runtime_error("Duplicate host:port found: " + port_key);
+                throw std::runtime_error("Duplicate port found in same server: " + port_key);
             }
-            used_ports.insert(port_key);
+            server_ports.insert(port_key);
+
+            // Check for duplicates across different servers
+            if (port_to_server_name.find(port_key) != port_to_server_name.end())
+            {
+                std::string existing_server_name = port_to_server_name[port_key];
+                std::string current_server_name = servers[i].server_name;
+                
+                // If both servers have the same server_name (or both are empty), it's an error
+                if (existing_server_name == current_server_name)
+                {
+                    if (current_server_name.empty())
+                    {
+                        throw std::runtime_error("Duplicate port " + port_key + " found in servers with no server_name");
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Duplicate port " + port_key + " found in servers with same server_name: " + current_server_name);
+                    }
+                }
+                // If server_names are different, it's allowed (no error)
+            }
+            else
+            {
+                port_to_server_name[port_key] = servers[i].server_name;
+            }
+        }
+    }
+}
+
+void ConfigParser::validateRequiredDirectives()
+{
+    for (size_t i = 0; i < servers.size(); i++)
+    {
+        const ServerConfig &server = servers[i];
+        
+        // Check if server has at least one listen directive
+        if (server.listen.empty())
+        {
+            throw std::runtime_error("Server block missing required 'listen' directive");
+        }
+        
+        // Check if server has a root directive or all locations have root directives
+        bool server_has_root = !server.root.empty();
+        bool all_locations_have_root = true;
+        
+        // If server has no root directive, check if all locations have root directives
+        if (!server_has_root)
+        {
+            if (server.locations.empty())
+            {
+                throw std::runtime_error("Server block must have either a root directive or location blocks with root directives");
+            }
+            
+            for (size_t j = 0; j < server.locations.size(); j++)
+            {
+                const LocationConfig &location = server.locations[j];
+                if (location.root.empty())
+                {
+                    all_locations_have_root = false;
+                    break;
+                }
+            }
+            
+            if (!all_locations_have_root)
+            {
+                throw std::runtime_error("Server block must have a root directive or all location blocks must have root directives");
+            }
         }
     }
 }
@@ -402,6 +546,7 @@ void ConfigParser::parse()
     }
 
     validatePorts();
+    validateRequiredDirectives();
 }
 
 size_t ConfigParser::getServerCount() const
