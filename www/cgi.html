@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebServ Unified CGI Suite</title>
+  <link rel="icon" href="https://placehold.co/32x32/000000/FFFFFF?text=WEB" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
+            'gradient': 'gradient 15s ease infinite',
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    @keyframes pulse-glow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+      }
+
+      50% {
+        box-shadow: 0 0 40px rgba(59, 130, 246, 0.8);
+      }
+    }
+
+    @keyframes gradient {
+
+      0%,
+      100% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .animate-pulse-glow {
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    .bg-gradient-animated {
+      background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+    }
+
+    .text-gradient {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .glass {
+      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .dark .glass {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .nav-link {
+      position: relative;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -4px;
+      left: 50%;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+
+    .nav-link:hover::after {
+      width: 100%;
+    }
+
+    .cgi-response {
+      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      border: 2px solid #e2e8f0;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-top: 1rem;
+      min-height: 80px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .dark .cgi-response {
+      background: linear-gradient(135deg, #1e293b, #334155);
+      border-color: #475569;
+      color: #e2e8f0;
+    }
+
+    .loading-dots::after {
+      content: '';
+      animation: dots 1.5s steps(5, end) infinite;
+    }
+
+    @keyframes dots {
+
+      0%,
+      20% {
+        content: '';
+      }
+
+      40% {
+        content: '.';
+      }
+
+      60% {
+        content: '..';
+      }
+
+      80%,
+      100% {
+        content: '...';
+      }
+    }
+
+    code {
+      background: rgba(59, 130, 246, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.9em;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .dark code {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .message-box {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 1rem 1.5rem;
+      border-radius: 0.75rem;
+      font-weight: 600;
+      z-index: 1000;
+      transform: translateX(400px);
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .message-box.show {
+      transform: translateX(0);
+    }
+
+    .message-box.success {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+
+    .message-box.error {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+    }
+
+    .message-box.info {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+    }
+  </style>
+</head>
+
+<body
+  class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900 text-gray-800 dark:text-gray-100 min-h-screen transition-all duration-500">
+
+  <nav class="py-6 glass shadow-2xl mb-10 relative z-50 sticky top-0">
+    <div class="container mx-auto px-6">
+      <ul class="flex justify-center gap-8 text-lg font-semibold">
+        <li><a href="index.html"
+            class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Home</a>
+        </li>
+        <li><a href="session.html"
+            class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Session
+            Management</a></li>
+        <li><a href="cgi.html" class="nav-link text-blue-600 dark:text-blue-400 underline">Unified CGI Test</a></li>
+        <li><a href="upload.html"
+            class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">File
+            Upload & Delete</a></li>
+      </ul>
+    </div>
+    <div class="absolute top-4 right-6">
+      <button id="darkModeToggle"
+        class="p-3 rounded-full glass text-2xl transition-all duration-300 hover:scale-110 animate-pulse-glow">
+        🌙
+      </button>
+    </div>
+  </nav>
+
+  <main class="container mx-auto max-w-6xl px-6 space-y-16 relative z-10">
+
+    <!-- Hero Section -->
+    <section
+      class="text-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-12 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 relative overflow-hidden transform hover:scale-[1.02] transition-all duration-700">
+      <div class="absolute inset-0 bg-gradient-animated opacity-5"></div>
+      <div class="animate-float relative z-10">
+        <h1 class="text-6xl md:text-7xl font-black text-gradient mb-6 drop-shadow-lg">
+          CGI Suite
+        </h1>
+      </div>
+      <p
+        class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-4xl mx-auto leading-relaxed font-light relative z-10">
+        Test and explore WebServ's CGI capabilities with various scripting languages. Execute Python, PHP, Shell, and
+        Node.js scripts dynamically.
+      </p>
+      <div class="flex justify-center gap-4 relative z-10">
+        <div
+          class="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
+          Python</div>
+        <div
+          class="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
+          PHP</div>
+        <div
+          class="px-4 py-2 bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300 rounded-full text-sm font-medium">
+          Shell</div>
+        <div
+          class="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full text-sm font-medium">
+          Node.js</div>
+      </div>
+    </section>
+
+    <!-- Quick CGI Links -->
+    <section
+      class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 transform hover:scale-[1.01] transition-all duration-500">
+      <h2 class="text-4xl font-bold text-gradient border-b-4 border-gradient-to-r from-green-500 to-blue-500 pb-4 mb-8">
+        Quick CGI Tests</h2>
+      <p class="text-lg text-gray-600 dark:text-gray-300 mb-8">Test CGI scripts directly with GET requests. Click any
+        button to execute the corresponding script.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <a href="/cgi-bin/info.py"
+          class="group bg-gradient-to-br from-green-500 to-emerald-600 text-white p-6 rounded-2xl hover:from-green-600 hover:to-emerald-700 transform hover:scale-105 hover:-rotate-1 transition-all duration-300 text-center shadow-lg">
+          <div class="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">🐍</div>
+          <div class="font-bold text-lg">Python</div>
+          <div class="text-sm opacity-90 mt-1">info.py</div>
+        </a>
+
+        <a href="/cgi-bin/info.php"
+          class="group bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 rounded-2xl hover:from-indigo-600 hover:to-purple-700 transform hover:scale-105 hover:rotate-1 transition-all duration-300 text-center shadow-lg">
+          <div class="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">🐘</div>
+          <div class="font-bold text-lg">PHP</div>
+          <div class="text-sm opacity-90 mt-1">info.php</div>
+        </a>
+
+        <a href="/cgi-bin/info.sh"
+          class="group bg-gradient-to-br from-gray-600 to-gray-800 text-white p-6 rounded-2xl hover:from-gray-700 hover:to-gray-900 transform hover:scale-105 hover:-rotate-1 transition-all duration-300 text-center shadow-lg">
+          <div class="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">🐚</div>
+          <div class="font-bold text-lg">Shell</div>
+          <div class="text-sm opacity-90 mt-1">info.sh</div>
+        </a>
+
+        <a href="/cgi-bin/info.js"
+          class="group bg-gradient-to-br from-yellow-500 to-orange-600 text-white p-6 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transform hover:scale-105 hover:rotate-1 transition-all duration-300 text-center shadow-lg">
+          <div class="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">⚡</div>
+          <div class="font-bold text-lg">Node.js</div>
+          <div class="text-sm opacity-90 mt-1">info.js</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Encoder Section -->
+    <section
+      class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 transform hover:scale-[1.01] transition-all duration-500">
+      <div class="flex items-center gap-4 mb-8">
+        <div class="text-4xl">🔐</div>
+        <h2 class="text-4xl font-bold text-gradient">Encoder CGI (Base Encoding)</h2>
+      </div>
+
+      <div
+        class="bg-gradient-to-r from-blue-50 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/30 p-6 rounded-2xl mb-8 border-l-4 border-blue-500">
+        <p class="text-lg text-gray-700 dark:text-gray-300 mb-4">Enter some text and select an encoding algorithm
+          (Base16, 32, 64, 85):</p>
+      </div>
+
+      <form id="tailwindEncoderForm" class="space-y-6">
+        <div>
+          <label for="encoderAlg" class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Encoding
+            Algorithm:</label>
+          <select id="encoderAlg"
+            class="w-full p-4 border-2 border-blue-200 dark:border-blue-700 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300"
+            required>
+            <option value="base16">Base 16</option>
+            <option value="base32">Base 32</option>
+            <option value="base64">Base 64</option>
+            <option value="base85">Base 85</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="encoderInput" class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Text to
+            Encode:</label>
+          <textarea id="encoderInput" rows="4" placeholder="Enter text to encode..."
+            class="w-full p-4 border-2 border-blue-200 dark:border-blue-700 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300 resize-none"
+            required></textarea>
+        </div>
+
+        <button type="submit"
+          class="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300 text-lg relative overflow-hidden group">
+          <span class="relative z-10">🔐 Encode</span>
+          <div
+            class="absolute inset-0 bg-white/20 transform -skew-x-12 translate-x-full group-hover:-translate-x-full transition-transform duration-700">
+          </div>
+        </button>
+      </form>
+
+      <div id="encoderResult" class="cgi-response mt-6 opacity-0 transform translate-y-4 transition-all duration-500">
+      </div>
+    </section>
+
+    <!-- Shell Script Section -->
+    <section
+      class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 transform hover:scale-[1.01] transition-all duration-500">
+      <div class="flex items-center gap-4 mb-8">
+        <div class="text-4xl">🐚</div>
+        <h2 class="text-4xl font-bold text-gradient">Shell Script CGI Test</h2>
+      </div>
+
+      <div
+        class="bg-gradient-to-r from-gray-50 to-slate-100 dark:from-gray-800/50 dark:to-slate-800/50 p-6 rounded-2xl mb-8 border-l-4 border-gray-500">
+        <p class="text-lg text-gray-700 dark:text-gray-300 mb-4">This section demonstrates a Bash shell CGI script that
+          processes POST data and displays environment variables.</p>
+        <pre class="bg-gray-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto"><code>#!/bin/bash</code></pre>
+      </div>
+
+      <form id="shCgiForm" action="/cgi-bin/test_sh.sh" method="POST" class="space-y-6">
+        <div>
+          <label for="shInput" class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Enter text for
+            Shell CGI:</label>
+          <input type="text" id="shInput" name="data" placeholder="Shell script input..."
+            class="w-full p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-gray-500 focus:ring-2 focus:ring-gray-200 transition-all duration-300">
+        </div>
+
+        <button type="submit"
+          class="w-full bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white font-bold py-4 px-8 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300 text-lg relative overflow-hidden group">
+          <span class="relative z-10">🐚 Run Shell CGI</span>
+          <div
+            class="absolute inset-0 bg-white/20 transform -skew-x-12 translate-x-full group-hover:-translate-x-full transition-transform duration-700">
+          </div>
+        </button>
+      </form>
+
+      <div id="shCgiResponse" class="cgi-response mt-6 opacity-0 transform translate-y-4 transition-all duration-500">
+      </div>
+    </section>
+
+    <!-- Python Script Section -->
+    <section
+      class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 transform hover:scale-[1.01] transition-all duration-500">
+      <div class="flex items-center gap-4 mb-8">
+        <div class="text-4xl">🐍</div>
+        <h2 class="text-4xl font-bold text-gradient">Python CGI Test</h2>
+      </div>
+
+      <div
+        class="bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/30 p-6 rounded-2xl mb-8 border-l-4 border-green-500">
+        <p class="text-lg text-gray-700 dark:text-gray-300 mb-4">This section demonstrates a Python CGI script with
+          special functionality.</p>
+        <div class="bg-yellow-100 dark:bg-yellow-900/30 p-4 rounded-lg border border-yellow-300 dark:border-yellow-600">
+          <p class="text-yellow-800 dark:text-yellow-200 font-medium">💡 Tip: Type "redirect" to trigger a redirect
+            response!</p>
+        </div>
+        <pre
+          class="bg-gray-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto mt-4"><code>#!/usr/bin/env python3</code></pre>
+      </div>
+
+      <form id="pyCgiForm" action="/cgi-bin/test_py.py" method="POST" class="space-y-6">
+        <div>
+          <label for="pyInput" class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Enter text for
+            Python CGI:</label>
+          <input type="text" id="pyInput" name="py_message" placeholder="Python script input (try 'redirect')..."
+            class="w-full p-4 border-2 border-green-200 dark:border-green-700 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all duration-300">
+        </div>
+
+        <button type="submit"
+          class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300 text-lg relative overflow-hidden group">
+          <span class="relative z-10">🐍 Run Python CGI</span>
+          <div
+            class="absolute inset-0 bg-white/20 transform -skew-x-12 translate-x-full group-hover:-translate-x-full transition-transform duration-700">
+          </div>
+        </button>
+      </form>
+
+      <div id="pyCgiResponse" class="cgi-response mt-6 opacity-0 transform translate-y-4 transition-all duration-500">
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-24 py-16 glass text-center relative z-10">
+    <div class="container mx-auto px-6">
+      <div class="text-4xl mb-4 animate-pulse">🔧</div>
+      <p class="text-gray-600 dark:text-gray-400 text-xl font-light">
+        WebServ CGI Suite • Powered by C++98
+      </p>
+      <div class="mt-6 flex justify-center space-x-4">
+        <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+        <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.1s;"></div>
+        <div class="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+      </div>
+    </div>
+  </footer>
+
+  <div id="messageBox" class="message-box"></div>
+
+  <script>
+    // Dark mode toggle - using session storage instead of localStorage
+    const toggleBtn = document.getElementById('darkModeToggle');
+    const html = document.documentElement;
+
+    // Store theme preference in memory for this session
+    let currentTheme = 'light';
+
+    // Initialize dark mode state
+    function initializeDarkMode() {
+      if (currentTheme === 'dark') {
+        html.classList.add('dark');
+        toggleBtn.textContent = '☀️';
+      } else {
+        html.classList.remove('dark');
+        toggleBtn.textContent = '🌙';
+      }
+    }
+
+    // Initialize on page load
+    initializeDarkMode();
+
+    toggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      html.classList.toggle('dark');
+
+      // Add click animation
+      toggleBtn.style.transform = 'scale(0.8)';
+      setTimeout(() => {
+        toggleBtn.style.transform = 'scale(1)';
+      }, 150);
+
+      if (html.classList.contains('dark')) {
+        toggleBtn.textContent = '☀️';
+        currentTheme = 'dark';
+      } else {
+        toggleBtn.textContent = '🌙';
+        currentTheme = 'light';
+      }
+    });
+
+    function showMessage(message, type = 'success') {
+      const box = document.getElementById('messageBox');
+      box.textContent = message;
+      box.className = 'message-box show ' + type;
+      setTimeout(() => box.classList.remove('show'), 3000);
+    }
+
+    async function handleCgiFormSubmit(event, responseId) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      const url = form.action;
+      const display = document.getElementById(responseId);
+      const encoded = new URLSearchParams(formData).toString();
+
+      display.style.opacity = '1';
+      display.style.transform = 'translateY(0)';
+      display.textContent = 'Loading...';
+      showMessage('Running CGI script...', 'info');
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: encoded
+        });
+
+        if (!response.ok) {
+          const errorHtml = await response.text();
+          document.documentElement.innerHTML = errorHtml;
+          return;
+        }
+
+        const result = await response.text();
+        display.textContent = result;
+        showMessage('CGI script executed successfully!');
+      } catch (error) {
+        console.error('CGI error:', error);
+        display.textContent = `Error: ${error.message}`;
+        showMessage('Error during CGI execution.', 'error');
+        window.location.href = '/error.html';
+      }
+    }
+
+    // Encoder form handler
+    document.getElementById("tailwindEncoderForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const alg = document.getElementById("encoderAlg").value.trim();
+      const cipher = document.getElementById("encoderInput").value.trim();
+      const resultBox = document.getElementById("encoderResult");
+
+      if (!cipher || !alg) {
+        resultBox.style.opacity = '1';
+        resultBox.style.transform = 'translateY(0)';
+        resultBox.textContent = "Please enter text and choose an algorithm.";
+        return;
+      }
+
+      resultBox.style.opacity = '1';
+      resultBox.style.transform = 'translateY(0)';
+      resultBox.textContent = "Encoding...";
+      showMessage('Encoding data...', 'info');
+
+      try {
+        const res = await fetch("/cgi-bin/encoder.cgi", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ alg, cipher })
+        });
+
+        const text = await res.text();
+
+        try {
+          const data = JSON.parse(text);
+          resultBox.textContent = "Encoded result:\n" + data.encoded;
+          showMessage('Encoding completed successfully!');
+        } catch (err) {
+          resultBox.textContent = "Unexpected response (not JSON):\n" + text;
+          showMessage('Encoding completed with unexpected format.', 'info');
+        }
+      } catch (err) {
+        resultBox.textContent = "Error: " + err.message;
+        showMessage('Error during encoding.', 'error');
+      }
+    });
+
+    // CGI form handlers
+    document.getElementById('shCgiForm').addEventListener('submit', e => handleCgiFormSubmit(e, 'shCgiResponse'));
+    document.getElementById('pyCgiForm').addEventListener('submit', e => handleCgiFormSubmit(e, 'pyCgiResponse'));
+  </script>
+</body>
+
+</html>

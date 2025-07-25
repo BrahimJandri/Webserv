@@ -3,12 +3,12 @@ CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
 # Source files
 SRC =	src/main.cpp \
-		src/Config/ConfigParser.cpp \
+		src/Parser/ConfigParser.cpp \
 		src/Server/Server.cpp \
-		src/Server/Client.cpp \
-		src/HTTP/Request.cpp \
-		src/HTTP/Response.cpp \
-		src/CGI/CGIHandler.cpp \
+		src/Request/Request.cpp \
+		src/Client/Client.cpp \
+		src/Response/Response.cpp \
+		src/CGI/CGI.cpp \
 		src/Utils/Logger.cpp
 
 # Object directory
@@ -18,19 +18,19 @@ OBJ_DIR = objFiles
 OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.cpp=.o)))
 
 # Header files
-HEADERS =	src/Config/ConfigParser.hpp \
+HEADERS =	src/Parser/ConfigParser.hpp \
 			src/Server/Server.hpp \
-			src/Server/Client.hpp \
-			src/HTTP/Request.hpp \
-			src/HTTP/Response.hpp \
-			src/CGI/CGIHandler.hpp \
+			src/Request/Request.hpp \
+			src/Client/Client.hpp \
+			src/Response/Response.hpp \
+			src/CGI/CGI.hpp \
 			src/Utils/Logger.hpp
 
 # Include directories
-INCLUDES = -I. -Isrc -Isrc/Config -Isrc/Server -Isrc/HTTP -Isrc/CGI -Isrc/Utils
+INCLUDES = -I. -Isrc -Isrc/Parser -Isrc/Server -Isrc/Request -Isrc/Client -Isrc/Response -Isrc/CGI -Isrc/Utils
 
 # Source directories for vpath
-VPATH = src:src/Config:src/Server:src/HTTP:src/CGI:src/Utils
+VPATH = src:src/Parser:src/Server:src/Request:src/Client:src/Response:src/CGI:src/Cookies:src/SessionManager:src/Utils
 
 all: $(OBJ_DIR) Webserv
 

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebServ Cookie Management</title>
+  <link rel="icon" href="https://placehold.co/32x32/000000/FFFFFF?text=WEB" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
+            'gradient': 'gradient 15s ease infinite',
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+      50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.8); }
+    }
+
+    @keyframes gradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .animate-pulse-glow {
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    .bg-gradient-animated {
+      background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+    }
+
+    .text-gradient {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .glass {
+      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .dark .glass {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .nav-link {
+      position: relative;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -4px;
+      left: 50%;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+
+    .nav-link:hover::after {
+      width: 100%;
+    }
+
+    code {
+      background: rgba(59, 130, 246, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .dark code {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading {
+      position: relative;
+    }
+
+    .loading::after {
+      content: '';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900 text-gray-800 dark:text-gray-100 min-h-screen transition-all duration-500">
+  
+  <nav class="py-6 glass shadow-2xl mb-10 relative z-50 sticky top-0">
+    <div class="container mx-auto px-6">
+      <ul class="flex justify-center gap-8 text-lg font-semibold">
+        <li><a href="index.html" class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Home</a></li>
+        <li><a href="session.html" class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Session Management</a></li>
+        <li><a href="cgi.html" class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Unified CGI Test</a></li>
+        <li><a href="#" class="nav-link text-blue-600 dark:text-blue-400 underline">Cookies</a></li>
+        <li><a href="upload.html" class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">File Upload & Delete</a></li>
+      </ul>
+    </div>
+    <div class="absolute top-4 right-6">
+      <button id="darkModeToggle" class="p-3 rounded-full glass text-2xl transition-all duration-300 hover:scale-110 animate-pulse-glow">
+        🌙
+      </button>
+    </div>
+  </nav>
+
+  <main class="container mx-auto max-w-6xl px-6 space-y-12 relative z-10">
+
+    <!-- Hero Section -->
+    <section class="text-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-12 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 relative overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-animated opacity-5"></div>
+      <div class="animate-float relative z-10">
+        <h1 class="text-6xl md:text-7xl font-black text-gradient mb-6 drop-shadow-lg">
+          🍪 Cookie Management
+        </h1>
+      </div>
+      <p class="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed font-light relative z-10">
+        Manage cookies efficiently with WebServ's cookie system. Set, retrieve, and handle cookies with proper expiration and security.
+      </p>
+    </section>
+
+    <!-- Set Cookie Section -->
+    <section class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 transform hover:scale-[1.01] transition-all duration-500">
+      <div class="flex items-center gap-4 mb-8">
+        <div class="text-4xl">🔧</div>
+        <h2 class="text-4xl font-bold text-gradient">Set Cookie</h2>
+      </div>
+      
+      <form id="setCookieForm" class="space-y-6">
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="space-y-2">
+            <label for="set-cookie-name" class="block text-lg font-semibold text-gray-700 dark:text-gray-300">Cookie Name</label>
+            <input type="text" id="set-cookie-name" 
+              class="w-full px-4 py-3 bg-white/70 dark:bg-gray-700/70 border-2 border-blue-200 dark:border-blue-600 rounded-xl focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/50 transition-all duration-300 text-lg placeholder-gray-400 dark:placeholder-gray-500"
+              placeholder="Enter cookie name..." required>
+          </div>
+          <div class="space-y-2">
+            <label for="set-cookie-value" class="block text-lg font-semibold text-gray-700 dark:text-gray-300">Cookie Value</label>
+            <input type="text" id="set-cookie-value" 
+              class="w-full px-4 py-3 bg-white/70 dark:bg-gray-700/70 border-2 border-blue-200 dark:border-blue-600 rounded-xl focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/50 transition-all duration-300 text-lg placeholder-gray-400 dark:placeholder-gray-500"
+              placeholder="Enter cookie value..." required>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label for="set-cookie-expiry" class="block text-lg font-semibold text-gray-700 dark:text-gray-300">Expiry (seconds)</label>
+          <input type="number" id="set-cookie-expiry" 
+            class="w-full md:w-1/2 px-4 py-3 bg-white/70 dark:bg-gray-700/70 border-2 border-blue-200 dark:border-blue-600 rounded-xl focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/50 transition-all duration-300 text-lg placeholder-gray-400 dark:placeholder-gray-500"
+            placeholder="3600" min="1">
+        </div>
+
+        <button type="submit" id="set-cookie-btn" 
+          class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300 text-lg relative overflow-hidden group">
+          <span class="relative z-10">🍪 SET COOKIE</span>
+          <div class="absolute inset-0 bg-white/20 transform -skew-x-12 translate-x-full group-hover:-translate-x-full transition-transform duration-700"></div>
+        </button>
+      </form>
+      
+      <div id="set-cookie-message" class="mt-4 p-4 rounded-xl opacity-0 transition-all duration-300"></div>
+      
+      <div class="mt-6 space-y-2">
+        <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300">Server Response</label>
+        <textarea id="set-cookie-response" readonly
+          class="w-full h-32 px-4 py-3 bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-xl resize-none font-mono text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500"
+          placeholder="Server response will appear here..."></textarea>
+      </div>
+    </section>
+
+    <!-- Get Cookie Section -->
+    <section class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 transform hover:scale-[1.01] transition-all duration-500">
+      <div class="flex items-center gap-4 mb-8">
+        <div class="text-4xl">📖</div>
+        <h2 class="text-4xl font-bold text-gradient">Get Cookie</h2>
+      </div>
+      
+      <div class="space-y-6">
+        <div class="space-y-2">
+          <label for="cookie-name" class="block text-lg font-semibold text-gray-700 dark:text-gray-300">Cookie Name</label>
+          <input type="text" id="cookie-name" 
+            class="w-full px-4 py-3 bg-white/70 dark:bg-gray-700/70 border-2 border-green-200 dark:border-green-600 rounded-xl focus:outline-none focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/50 transition-all duration-300 text-lg placeholder-gray-400 dark:placeholder-gray-500"
+            placeholder="Enter cookie name to retrieve..." required>
+        </div>
+
+        <button id="get-cookie-btn" 
+          class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-8 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300 text-lg relative overflow-hidden group">
+          <span class="relative z-10">📖 GET COOKIE</span>
+          <div class="absolute inset-0 bg-white/20 transform -skew-x-12 translate-x-full group-hover:-translate-x-full transition-transform duration-700"></div>
+        </button>
+        
+        <div id="get-cookie-message" class="p-4 rounded-xl opacity-0 transition-all duration-300"></div>
+        
+        <div class="space-y-2">
+          <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300">Cookie Value</label>
+          <textarea id="cookie-value" readonly
+            class="w-full h-32 px-4 py-3 bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-xl resize-none font-mono text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500"
+            placeholder="Cookie value will appear here..."></textarea>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-24 py-16 glass text-center relative z-10">
+    <div class="container mx-auto px-6">
+      <div class="text-4xl mb-4 animate-pulse">🍪</div>
+      <p class="text-gray-600 dark:text-gray-400 text-xl font-light">
+        Built with ❤️ and C++98 • WebServ Cookie Management
+      </p>
+      <div class="mt-6 flex justify-center space-x-4">
+        <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+        <div class="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 0.1s;"></div>
+        <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Dark mode toggle
+    const toggleBtn = document.getElementById('darkModeToggle');
+    const html = document.documentElement;
+    
+    // Check for saved theme preference or default to light mode
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    if (currentTheme === 'dark') {
+      html.classList.add('dark');
+      toggleBtn.textContent = '☀️';
+    }
+    
+    toggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      html.classList.toggle('dark');
+      
+      // Add click animation
+      toggleBtn.style.transform = 'scale(0.8)';
+      setTimeout(() => {
+        toggleBtn.style.transform = 'scale(1)';
+      }, 150);
+      
+      if (html.classList.contains('dark')) {
+        toggleBtn.textContent = '☀️';
+        localStorage.setItem('theme', 'dark');
+      } else {
+        toggleBtn.textContent = '🌙';
+        localStorage.setItem('theme', 'light');
+      }
+    });
+
+    // Utility function to show messages
+    function showMessage(elementId, message, type = 'success') {
+      const messageEl = document.getElementById(elementId);
+      messageEl.textContent = message;
+      messageEl.className = `p-4 rounded-xl transition-all duration-300 opacity-100 font-semibold text-center ${type === 'success' 
+        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-2 border-green-200 dark:border-green-600' 
+        : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-2 border-red-200 dark:border-red-600'}`;
+      
+      setTimeout(() => {
+        messageEl.classList.remove('opacity-100');
+        messageEl.classList.add('opacity-0');
+      }, 4000);
+    }
+
+    // Utility function to show loading state
+    function setLoading(buttonId, isLoading) {
+      const button = document.getElementById(buttonId);
+      if (isLoading) {
+        button.classList.add('loading');
+        button.disabled = true;
+        button.classList.add('opacity-70');
+      } else {
+        button.classList.remove('loading');
+        button.disabled = false;
+        button.classList.remove('opacity-70');
+      }
+    }
+
+    // Set Cookie Function - using document.cookie (client-side)
+    document.getElementById('setCookieForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      setLoading('set-cookie-btn', true);
+
+      const name = document.getElementById('set-cookie-name').value.trim();
+      const value = document.getElementById('set-cookie-value').value.trim();
+      const expiry = document.getElementById('set-cookie-expiry').value;
+      const responseArea = document.getElementById('set-cookie-response');
+
+      if (!name || !value) {
+        showMessage('set-cookie-message', 'Please fill in both cookie name and value!', 'error');
+        setLoading('set-cookie-btn', false);
+        return;
+      }
+
+      try {
+        let cookieString = `${name}=${value}`;
+
+        if (expiry) {
+          const expiryDate = new Date();
+          expiryDate.setTime(expiryDate.getTime() + (parseInt(expiry) * 1000));
+          cookieString += `; expires=${expiryDate.toUTCString()}`;
+        }
+
+        document.cookie = cookieString;
+
+        responseArea.value = `Cookie set successfully!\nName: ${name}\nValue: ${value}\nPath: /\nExpiry: ${expiry ? expiry + ' seconds' : 'Session'}\nCookie String: ${cookieString}`;
+        showMessage('set-cookie-message', 'Cookie set successfully!');
+
+        // Clear form
+        document.getElementById('setCookieForm').reset();
+
+      } catch (error) {
+        console.error('Set cookie error:', error);
+        responseArea.value = `Error setting cookie: ${error.message}`;
+        showMessage('set-cookie-message', 'Failed to set cookie!', 'error');
+      }
+      
+      setLoading('set-cookie-btn', false);
+    });
+
+    // Get Cookie Function - using your original logic
+    document.getElementById("get-cookie-btn").addEventListener("click", () => {
+      setLoading('get-cookie-btn', true);
+      
+      let cookieName = document.getElementById("cookie-name").value.trim();
+      let cookieValueTextArea = document.getElementById("cookie-value");
+
+      if (!cookieName) {
+        cookieValueTextArea.value = "Please enter a cookie name!";
+        showMessage('get-cookie-message', 'Please enter a cookie name!', 'error');
+        setLoading('get-cookie-btn', false);
+        return;
+      }
+
+      fetch('/cgi-bin/get_cookie.cgi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: cookieName })
+      })
+        .then(res => res.json())
+        .then(data => {
+          cookieValueTextArea.value = data.value;
+          showMessage('get-cookie-message', 'Cookie retrieved successfully!');
+        })
+        .catch(err => {
+          cookieValueTextArea.value = "Error fetching cookie!";
+          showMessage('get-cookie-message', 'Failed to retrieve cookie!', 'error');
+          console.error(err);
+        })
+        .finally(() => {
+          setLoading('get-cookie-btn', false);
+        });
+    });
+
+    // Allow Enter key to trigger get cookie
+    document.getElementById('cookie-name').addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        document.getElementById('get-cookie-btn').click();
+      }
+    });
+
+    // Page load animation
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.querySelectorAll('section').forEach((section, index) => {
+          section.style.opacity = '0';
+          section.style.transform = 'translateY(50px)';
+          section.style.transition = `all 0.8s cubic-bezier(0.4, 0, 0.2, 1) ${index * 0.1}s`;
+          
+          setTimeout(() => {
+            section.style.opacity = '1';
+            section.style.transform = 'translateY(0)';
+          }, index * 100);
+        });
+      }, 200);
+    });
+  </script>
+</body>
+
+</html>

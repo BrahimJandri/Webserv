@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>File Operations - WebServ</title>
+  <link rel="icon" href="https://placehold.co/32x32/000000/FFFFFF?text=WEB" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
+            'gradient': 'gradient 15s ease infinite',
+            'bounce-gentle': 'bounce-gentle 2s ease-in-out infinite',
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-20px);
+      }
+    }
+
+    @keyframes pulse-glow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+      }
+
+      50% {
+        box-shadow: 0 0 40px rgba(59, 130, 246, 0.8);
+      }
+    }
+
+    @keyframes gradient {
+
+      0%,
+      100% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+
+    @keyframes bounce-gentle {
+
+      0%,
+      100% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .animate-pulse-glow {
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    .bg-gradient-animated {
+      background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+    }
+
+    .text-gradient {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .glass {
+      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .dark .glass {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .nav-link {
+      position: relative;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -4px;
+      left: 50%;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+
+    .nav-link:hover::after {
+      width: 100%;
+    }
+
+    .form-input {
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .form-input:focus {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 35px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 35px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-primary::before,
+    .btn-danger::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn-primary:hover::before,
+    .btn-danger:hover::before {
+      left: 100%;
+    }
+
+    .file-upload-area {
+      border: 2px dashed #d1d5db;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .file-upload-area:hover {
+      border-color: #3b82f6;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05));
+    }
+
+    .dark .file-upload-area {
+      border-color: #4a5568;
+    }
+
+    .dark .file-upload-area:hover {
+      border-color: #60a5fa;
+    }
+
+    .message-box {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      max-width: 400px;
+      padding: 16px 24px;
+      border-radius: 16px;
+      font-weight: 600;
+      backdrop-filter: blur(16px);
+      border: 2px solid;
+      transform: translateX(500px);
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1000;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .message-box.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .message-box.success {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: #10b981;
+      color: #047857;
+    }
+
+    .dark .message-box.success {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+    }
+
+    .message-box.error {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: #ef4444;
+      color: #dc2626;
+    }
+
+    .dark .message-box.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+    }
+
+    .upload-progress {
+      width: 0%;
+      height: 4px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+
+<body
+  class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900 text-gray-800 dark:text-gray-100 min-h-screen transition-all duration-500">
+
+  <nav class="py-6 glass shadow-2xl mb-10 relative z-50 sticky top-0">
+    <div class="container mx-auto px-6">
+      <ul class="flex justify-center gap-8 text-lg font-semibold">
+        <li><a href="index.html"
+            class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Home</a>
+        </li>
+        <li><a href="session.html"
+            class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Session
+            Management</a></li>
+        <li><a href="cgi.html"
+            class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Unified
+            CGI Test</a></li>
+        <li><a href="cookies.html"
+            class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Cookies</a>
+        </li>
+        <li><a href="#" class="nav-link text-blue-600 dark:text-blue-400 underline">File Upload & Delete</a></li>
+      </ul>
+    </div>
+    <div class="absolute top-4 right-6">
+      <button id="darkModeToggle"
+        class="p-3 rounded-full glass text-2xl transition-all duration-300 hover:scale-110 animate-pulse-glow">
+        🌙
+      </button>
+    </div>
+  </nav>
+
+  <main class="container mx-auto max-w-5xl px-6 space-y-12 relative z-10">
+
+    <!-- Hero Section -->
+    <section
+      class="text-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-12 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 relative overflow-hidden transform hover:scale-[1.02] transition-all duration-700">
+      <div class="absolute inset-0 bg-gradient-animated opacity-5"></div>
+      <div class="animate-float relative z-10">
+        <h1 class="text-5xl md:text-6xl font-black text-gradient mb-6 drop-shadow-lg">
+          File Operations
+        </h1>
+      </div>
+      <p
+        class="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed font-light relative z-10">
+        Upload files to the server and manage your resources with our secure file handling system.
+      </p>
+    </section>
+
+    <!-- File Operations -->
+    <section class="grid md:grid-cols-2 gap-8">
+
+      <!-- File Upload -->
+      <div
+        class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 transform hover:scale-[1.02] transition-all duration-500">
+        <div class="text-center mb-8">
+          <div class="text-4xl mb-4 animate-float" style="animation-delay: 0.5s;">📁</div>
+          <h2 class="text-3xl font-bold text-gradient mb-2">Upload Files</h2>
+          <p class="text-gray-600 dark:text-gray-400">Securely upload files to the server</p>
+        </div>
+
+        <form id="uploadForm" action="/upload/" method="POST" enctype="multipart/form-data" class="space-y-6">
+          <div class="file-upload-area p-8 rounded-2xl text-center transition-all duration-300">
+            <div class="space-y-4">
+              <div class="text-5xl animate-bounce-gentle">⬆️</div>
+              <div>
+                <label for="fileInput" class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Choose a file to upload
+                </label>
+                <input type="file" id="fileInput" name="fileToUpload" required
+                  class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/20 dark:file:text-blue-400 file:transition-all file:duration-300" />
+              </div>
+              <div class="upload-progress" id="uploadProgress"></div>
+            </div>
+          </div>
+
+          <button type="submit" id="uploadButton"
+            class="btn-primary w-full text-white font-bold py-4 px-8 rounded-2xl text-lg relative overflow-hidden">
+            <span class="relative z-10">Upload File</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- File Delete -->
+      <div
+        class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 transform hover:scale-[1.02] transition-all duration-500">
+        <div class="text-center mb-8">
+          <div class="text-4xl mb-4 animate-float" style="animation-delay: 1s;">🗑️</div>
+          <h2 class="text-3xl font-bold text-gradient mb-2">Delete Files</h2>
+          <p class="text-gray-600 dark:text-gray-400">Remove files from the server</p>
+        </div>
+
+        <div class="space-y-6">
+          <div>
+            <label for="deleteResource" class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              File path to delete:
+            </label>
+            <input type="text" id="deleteResource" placeholder="/uploads/example.txt"
+              class="form-input w-full px-6 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl focus:outline-none focus:ring-0 focus:border-red-500 dark:focus:border-red-400 dark:bg-gray-700 dark:text-white bg-white/80 backdrop-blur-sm text-lg" />
+          </div>
+
+          <button id="deleteButton"
+            class="btn-danger w-full text-white font-bold py-4 px-8 rounded-2xl text-lg relative overflow-hidden">
+            <span class="relative z-10">Delete File</span>
+          </button>
+        </div>
+
+        <div class="mt-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-800">
+          <div class="flex items-start gap-3">
+            <div class="text-red-500 text-xl">⚠️</div>
+            <div>
+              <p class="text-sm text-red-700 dark:text-red-300 font-medium">
+                <strong>Warning:</strong> File deletion is permanent and cannot be undone.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- File Management Tips -->
+    <section
+      class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 transform hover:scale-[1.01] transition-all duration-500">
+      <h2 class="text-3xl font-bold text-gradient text-center mb-8">File Management Tips</h2>
+      <div class="grid md:grid-cols-3 gap-6">
+
+        <div
+          class="text-center p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700/50">
+          <div class="text-3xl mb-3">🔒</div>
+          <h3 class="font-bold text-blue-600 dark:text-blue-400 mb-2">Secure Uploads</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400">All files are validated and stored securely on the server.
+          </p>
+        </div>
+
+        <div
+          class="text-center p-6 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700/50">
+          <div class="text-3xl mb-3">📏</div>
+          <h3 class="font-bold text-green-600 dark:text-green-400 mb-2">Size Limits</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Maximum file size depends on server configuration.</p>
+        </div>
+
+        <div
+          class="text-center p-6 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-700/50">
+          <div class="text-3xl mb-3">🔄</div>
+          <h3 class="font-bold text-purple-600 dark:text-purple-400 mb-2">Real-time</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Operations are processed immediately by the server.</p>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Message Box for notifications -->
+  <div id="messageBox" class="message-box"></div>
+
+  <!-- Footer -->
+  <footer class="mt-24 py-16 glass text-center relative z-10">
+    <div class="container mx-auto px-6">
+      <div class="text-4xl mb-4 animate-pulse">⚡</div>
+      <p class="text-gray-600 dark:text-gray-400 text-xl font-light">
+        Built with ❤️ and C++98 • WebServ Project
+      </p>
+      <div class="mt-6 flex justify-center space-x-4">
+        <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+        <div class="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 0.1s;"></div>
+        <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Dark mode toggle
+    const toggleBtn = document.getElementById('darkModeToggle');
+    const html = document.documentElement;
+
+    // Check for saved theme preference or default to light mode
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    if (currentTheme === 'dark') {
+      html.classList.add('dark');
+      toggleBtn.textContent = '☀️';
+    }
+
+    toggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      html.classList.toggle('dark');
+
+      // Add click animation
+      toggleBtn.style.transform = 'scale(0.8)';
+      setTimeout(() => {
+        toggleBtn.style.transform = 'scale(1)';
+      }, 150);
+
+      if (html.classList.contains('dark')) {
+        toggleBtn.textContent = '☀️';
+        localStorage.setItem('theme', 'dark');
+      } else {
+        toggleBtn.textContent = '🌙';
+        localStorage.setItem('theme', 'light');
+      }
+    });
+
+    // Message display functionality
+    function showMessage(text, isSuccess) {
+      const messageBox = document.getElementById('messageBox');
+      messageBox.textContent = text;
+      messageBox.className = `message-box ${isSuccess ? 'success' : 'error'} show`;
+
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        messageBox.classList.remove('show');
+      }, 5000);
+    }
+
+    // File upload handling - Modified to redirect like delete
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadButton = document.getElementById('uploadButton');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(uploadForm);
+      const file = fileInput.files[0];
+
+      if (!file) {
+        showMessage('Please select a file to upload.', false);
+        return;
+      }
+
+      // Update button state
+      const originalText = uploadButton.innerHTML;
+      uploadButton.innerHTML = '<span class="relative z-10">Uploading...</span>';
+      uploadButton.disabled = true;
+
+      // Show progress
+      uploadProgress.style.width = '0%';
+      setTimeout(() => uploadProgress.style.width = '30%', 100);
+
+      try {
+        const response = await fetch('/upload/', {
+          method: 'POST',
+          body: formData
+        });
+
+        // Simulate progress
+        uploadProgress.style.width = '70%';
+
+        const responseText = await response.text();
+
+        if (response.ok) {
+          uploadProgress.style.width = '100%';
+          showMessage(`File "${file.name}" uploaded successfully!`, true);
+          uploadForm.reset();
+
+          // Reset progress after a delay
+          setTimeout(() => {
+            uploadProgress.style.width = '0%';
+          }, 2000);
+        } else {
+          // Check if response is HTML (server error page) - same logic as delete
+          if (responseText.includes('<!DOCTYPE html>')) {
+            // Replace the current page with the returned HTML (redirect to error page)
+            document.open();
+            document.write(responseText);
+            document.close();
+          } else {
+            showMessage(`Upload failed: ${responseText}`, false);
+          }
+          uploadProgress.style.width = '0%';
+        }
+      } catch (error) {
+        showMessage(`Upload error: ${error.message}`, false);
+        uploadProgress.style.width = '0%';
+      } finally {
+        // Reset button
+        uploadButton.innerHTML = originalText;
+        uploadButton.disabled = false;
+      }
+    });
+
+    // File delete handling
+    const deleteButton = document.getElementById('deleteButton');
+    const deleteInput = document.getElementById('deleteResource');
+
+    deleteButton.addEventListener('click', async () => {
+      const path = deleteInput.value.trim();
+
+      if (!path) {
+        showMessage('Please enter a file path to delete.', false);
+        deleteInput.focus();
+        return;
+      }
+
+      // Confirmation dialog
+      if (!confirm(`Are you sure you want to delete "${path}"? This action cannot be undone.`)) {
+        return;
+      }
+
+      // Update button state
+      const originalText = deleteButton.innerHTML;
+      deleteButton.innerHTML = '<span class="relative z-10">Deleting...</span>';
+      deleteButton.disabled = true;
+
+      try {
+        const response = await fetch(path, { method: 'DELETE' });
+        const responseText = await response.text();
+
+        if (response.ok) {
+          showMessage(`File "${path}" deleted successfully!`, true);
+          deleteInput.value = '';
+        } else {
+          // Check if response is HTML (server error page)
+          if (responseText.includes('<!DOCTYPE html>')) {
+            // Replace the current page with the returned HTML (original behavior)
+            document.open();
+            document.write(responseText);
+            document.close();
+          } else {
+            showMessage(`Delete failed: ${responseText}`, false);
+          }
+        }
+      } catch (error) {
+        showMessage(`Delete error: ${error.message}`, false);
+      } finally {
+        // Reset button
+        deleteButton.innerHTML = originalText;
+        deleteButton.disabled = false;
+      }
+    });
+
+    // File input styling enhancement
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const uploadArea = document.querySelector('.file-upload-area');
+        uploadArea.style.borderColor = '#10b981';
+        uploadArea.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(6, 182, 212, 0.05))';
+
+        // Show file info
+        const fileInfo = uploadArea.querySelector('.file-info');
+        if (fileInfo) fileInfo.remove();
+
+        const info = document.createElement('div');
+        info.className = 'file-info mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-700/50';
+        info.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="text-green-500">✅</div>
+            <div class="text-sm">
+              <div class="font-semibold text-green-700 dark:text-green-300">${file.name}</div>
+              <div class="text-green-600 dark:text-green-400">${(file.size / 1024).toFixed(1)} KB</div>
+            </div>
+          </div>
+        `;
+        uploadArea.appendChild(info);
+      }
+    });
+
+    // Page load animation
+    window.addEventListener('load', () => {
+      const sections = document.querySelectorAll('section');
+      sections.forEach((section, index) => {
+        section.style.opacity = '0';
+        section.style.transform = 'translateY(30px)';
+        section.style.transition = `all 0.8s cubic-bezier(0.4, 0, 0.2, 1) ${index * 0.2}s`;
+
+        setTimeout(() => {
+          section.style.opacity = '1';
+          section.style.transform = 'translateY(0)';
+        }, 100 + (index * 200));
+      });
+    });
+
+    // Input focus animations
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('focus', () => {
+        input.style.transform = 'translateY(-2px)';
+      });
+
+      input.addEventListener('blur', () => {
+        input.style.transform = 'translateY(0)';
+      });
+    });
+  </script>
+</body>
+
+</html>

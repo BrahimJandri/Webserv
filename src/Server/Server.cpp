@@ -1,361 +1,830 @@
 #include "Server.hpp"
-#include "../Config/ConfigParser.hpp"
-#include "../Utils/Logger.hpp"
-#include <iostream>
-#include <sstream>
-#include <cstring>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 Server::Server()
 {
-	epoll_fd = epoll_create1(0);
-	if (epoll_fd == -1)
-	{
-		perror("epoll_create1");
-		exit(EXIT_FAILURE);
-	}
+    epoll_fd = epoll_create1(0);
+    if (epoll_fd == -1)
+    {
+        perror("epoll_create1");
+        exit(EXIT_FAILURE);
+    }
 }
 
 Server::~Server()
 {
-	close(epoll_fd);
-	for (std::map<int, Client *>::iterator iter = clients.begin(); iter != clients.end(); ++iter)
-	{
-		delete iter->second;
-	}
-}
-
-void Server::start(const std::string &host, int port)
-{
-	int server_fd = create_server_socket(host, port);
-	if (server_fd == -1)
-	{
-		std::cerr << "Failed to create server socket." << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-	requestParser req;
-	handle_requests(server_fd, req);
-
-	close(server_fd);
-}
-
-void Server::stop()
-{
-	for (std::map<int, Client *>::iterator iter = clients.begin(); iter != clients.end(); ++iter)
-	{
-		close(iter->first);
-		delete iter->second;
-	}
-	clients.clear();
-}
-
-void Server::acceptNewConnection(int server_fd)
-{
-	struct sockaddr_in	client_addr;
-	socklen_t	client_len = sizeof(client_addr);
-
-	int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
-	if (client_fd == -1)
-	{
-		perror("accept");
-		return ;
-	}
-
-	// Set non-blocking
-	int flags = fcntl(client_fd, F_GETFL, 0);
-	fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
-
-	// Add client to epoll
-	struct epoll_event event;
-	event.events = EPOLLIN | EPOLLET; // Edge triggered
-	event.data.fd = client_fd;
-
-	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &event) == -1)
-	{
-		perror("epoll_ctl: client_fd");
-		close(client_fd);
-		return ;
-	}
-
-	// Create client object and store it
-	clients[client_fd] = new Client(client_fd);
-
-	std::cout << "New connection from " << inet_ntoa(client_addr.sin_addr)
-				<< ":" << ntohs(client_addr.sin_port)
-				<< " (fd: " << client_fd << ")" << std::endl;
-}
-
-void Server::handleClientRead(int client_fd)
-{
-	if (clients.find(client_fd) == clients.end())
-	{
-		// Client not found, something is wrong
-		closeClientConnection(client_fd);
-		return ;
-	}
-
-	char buffer[4096];
-	ssize_t bytes_read;
-
-	//Read data in a loop until EAGAIN/EWOULDBLOCK
-	while (true)
-	{
-		bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
-		
-		if (bytes_read == -1)
-		{
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
-			{
-				// No more data to read
-				break;
-			}
-			else
-			{
-				// Error occurred
-				perror("read");
-				closeClientConnection(client_fd);
-				return;
-			}
-		}
-		else if (bytes_read == 0)
-		{
-			// Client closed connection
-			closeClientConnection(client_fd);
-			return;
-		}
-		else
-		{
-			// Data received, append to client's buffer
-			buffer[bytes_read] = '\0';
-			clients[client_fd]->appendToBuffer(std::string(buffer, bytes_read));
-		}
-	}
-
-	// Process the complete request if we have one
-	if (clients[client_fd]->processRequest())
-	{
-		// Request is complete, prepare response
-		clients[client_fd]->prepareResponse();
-		
-		// Update epoll to watch for write readiness
-		struct epoll_event event;
-		event.events = EPOLLOUT | EPOLLET;
-		event.data.fd = client_fd;
-		
-		if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client_fd, &event) == -1)
-		{
-			perror("epoll_ctl: modify to EPOLLOUT");
-			closeClientConnection(client_fd);
-		}
-	}
-}
-
-void Server::handleClientWrite(int client_fd)
-{
-	if (clients.find(client_fd) == clients.end())
-	{
-		closeClientConnection(client_fd);
-		return;
-	}
-
-	Client* client = clients[client_fd];
-
-	if (!client->isResponseReady())
-	{
-		// Should not happen, but just in case
-		client->prepareResponse();
-	}
-
-	std::string response = client->getResponse();
-	ssize_t bytes_sent = write(client_fd, response.c_str(), response.length());
-
-	if (bytes_sent == -1)
-	{
-		if (errno != EAGAIN && errno != EWOULDBLOCK)
-		{
-			perror("write");
-			closeClientConnection(client_fd);
-		}
-		return;
-	}
-
-	// For simplicity, we'll close the connection after sending the response
-	// In a real HTTP server, you might want to check for Keep-Alive header
-	closeClientConnection(client_fd);
-}
-
-void Server::handleConnections(int server_fd)
-{
-	struct epoll_event event;
-	event.events = EPOLLIN;
-	event.data.fd = server_fd;
-
-	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &event) == -1)
-	{
-		perror("Epoll_ctl: server_fd!");
-		exit(EXIT_FAILURE);
-	}
-	struct epoll_event events[MAX_EVENTS];
-
-	while (true)
-	{
-		int num_events = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
-		if (num_events == -1)
-		{
-			perror("epoll_wait");
-			continue;
-		}
-
-		for (int i = 0; i < num_events; i++) {
-			if (events[i].data.fd == server_fd)
-				acceptNewConnection(server_fd);
-			else if (events[i].events & EPOLLIN)
-				handleClientRead(events[i].data.fd);
-			else if (events[i].events & EPOLLOUT)
-				handleClientWrite(events[i].data.fd);
-		}
-	}
-}
-
-void Server::handleClientRequest(int client_fd, requestParser &req)
-{
-	char buffer[4096];
-	std::memset(buffer, 0, sizeof(buffer));
-	ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
-	if (bytes_read <= 0)
-	{
-		closeClientConnection(client_fd);
-		return;
-	}
-
-	std::string raw_request(buffer);
-	req.parseRequest(raw_request);
-
-	std::cout << "== New HTTP Request ==\n";
-	std::cout << req.getMethod() << " " << req.getPath() << " " << req.getHttpVersion() << std::endl;
-	std::map<std::string, std::string>::const_iterator it;
-	for (it = req.getHeaders().begin(); it != req.getHeaders().end(); ++it)
-	{
-		std::cout << it->first << ": " << it->second << std::endl;
-	}
-
-	std::string body = "<h1>Hello from Webserv</h1>";
-	std::string response =
-		"HTTP/1.1 200 OK\r\n"
-		"Content-Type: text/html\r\n"
-		"Content-Length: " + to_string_c98(body.length()) + "\r\n"
-														   "\r\n" +
-		body;
-	sendResponse(client_fd, response);
-}
-
-void Server::sendResponse(int client_fd, const std::string &response)
-{
-	ssize_t bytes_written = write(client_fd, response.c_str(), response.length());
-	if (bytes_written < 0)
-	{
-		perror("write");
-	}
-	closeClientConnection(client_fd);
-}
-
-void Server::closeClientConnection(int client_fd)
-{
-	if (clients.find(client_fd) != clients.end())
-	{
-		delete clients[client_fd];
-		clients.erase(client_fd);
-	}
-	close(client_fd);
-	std::cout << "Closed connection for client fd: " << client_fd << std::endl;
+    close(epoll_fd);
+    for (std::map<int, Client *>::iterator iter = clients.begin(); iter != clients.end(); ++iter)
+    {
+        delete iter->second;
+    }
 }
 
 int create_server_socket(const std::string &host, int port)
 {
-	int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (server_fd == -1)
-	{
-		perror("socket");
-		return -1;
-	}
+    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd == -1)
+    {
+        perror("socket");
+        return -1;
+    }
 
-	int opt = 1;
-	setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    int opt = 1;
+    // setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); OLD
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
+    {
+        perror("setsockopt SO_REUSEADDR");
+        close(server_fd);
+        return -1;
+    }
 
-	struct sockaddr_in addr;
-	std::memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);                    // This function is used to convert the unsigned int from machine byte order to network byte order.
-	addr.sin_addr.s_addr = inet_addr(host.c_str()); // It is used when we don't want to bind our socket to any particular IP and instead make it listen to all the available IPs.
+    struct sockaddr_in addr;
+    std::memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    // addr.sin_addr.s_addr = inet_addr(host.c_str());CHANGED TO THE ABOVE
+    if (host == "0.0.0.0" || host.empty())
+        addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    else
+    {
+        addr.sin_addr.s_addr = inet_addr(host.c_str());
+    }
 
-	if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
-	{
-		perror("bind");
-		close(server_fd);
-		return -1;
-	}
+    if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+    {
+        perror("bind");
+        close(server_fd);
+        return -1;
+    }
 
-	if (listen(server_fd, 10) == -1)
-	{
-		perror("listen");
-		close(server_fd);
-		return -1;
-	}
+    if (listen(server_fd, 10) == -1)
+    {
+        perror("listen");
+        close(server_fd);
+        return -1;
+    }
 
-	std::cout << "Listening on " << host << ":" << port << std::endl;
-	return server_fd;
+    return server_fd;
+}
+
+void Server::setupServers(const ConfigParser &parser)
+{
+    const std::vector<ConfigParser::ServerConfig> &serverConfigs = parser.getServers();
+    std::set<std::string> createdHostPorts; // To avoid duplicate sockets
+
+    for (size_t i = 0; i < serverConfigs.size(); ++i)
+    {
+        const ConfigParser::ServerConfig &server = serverConfigs[i];
+
+        for (size_t j = 0; j < server.listen.size(); ++j)
+        {
+            const ConfigParser::Listen &listen = server.listen[j];
+            std::string host = listen.host;
+            std::string port = listen.port;
+            std::string hostPortKey = host + ":" + port;
+
+            if (createdHostPorts.count(hostPortKey))
+                continue; // Skip already created sockets
+
+            Utils::log("Setting up server on " + host + ":" + port, AnsiColor::YELLOW);
+
+            int server_fd = create_server_socket(host, std::atoi(port.c_str()));
+            if (server_fd == -1)
+            {
+                std::cerr << "Failed to create server socket." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            // Find all ServerConfigs that listen on this host:port
+            std::vector<ConfigParser::ServerConfig> matchedConfigs;
+            for (size_t k = 0; k < serverConfigs.size(); ++k)
+            {
+                const ConfigParser::ServerConfig &other = serverConfigs[k];
+                for (size_t l = 0; l < other.listen.size(); ++l)
+                {
+                    if (other.listen[l].host == host && other.listen[l].port == port)
+                    {
+                        matchedConfigs.push_back(other);
+                        break;
+                    }
+                }
+            }
+
+            serverConfigMap[server_fd] = matchedConfigs;
+
+            // Register with epoll
+            struct epoll_event ev;
+            ev.events = EPOLLIN;
+            ev.data.fd = server_fd;
+
+            if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) == -1)
+            {
+                perror("epoll_ctl: server_fd");
+                exit(EXIT_FAILURE);
+            }
+            server_fds.insert(server_fd);
+            createdHostPorts.insert(hostPortKey); // Mark as created
+        }
+    }
+}
+
+volatile sig_atomic_t Server::_turnoff = 0;
+
+void sighandler(int signum)
+{
+    if (signum == SIGINT || signum == SIGQUIT)
+    {
+        Server::_turnoff = 1;
+    }
+}
+
+void Server::acceptNewConnection(int server_fd)
+{
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+
+    int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_len);
+    if (client_fd == -1)
+    {
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return; // No more connections to accept
+        perror("accept");
+        return;
+    }
+
+    // Set non-blocking
+    int flags = fcntl(client_fd, F_GETFL, 0);
+    if (flags == -1 || fcntl(client_fd, F_SETFL, flags | O_NONBLOCK) == -1)
+    {
+        perror("fcntl");
+        close(client_fd);
+        return;
+    }
+
+    // Add client to epoll
+    struct epoll_event event;
+    event.events = EPOLLIN | EPOLLET;
+    event.data.fd = client_fd;
+
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &event) == -1)
+    {
+        perror("epoll_ctl: client_fd");
+        close(client_fd);
+        return;
+    }
+
+    // Store client
+    clients[client_fd] = new Client(client_fd);
+    clientToServergMap[client_fd] = serverConfigMap[server_fd][0];
+
+    Utils::log("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" + to_string_c98(ntohs(client_addr.sin_port)) + " (fd: " + to_string_c98(client_fd) + ")", AnsiColor::GREEN);
+}
+
+void Server::closeClientConnection(int client_fd)
+{
+    // Remove from epoll first to avoid getting events for a closed fd
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL) == -1)
+    {
+        // Ignore errors here, fd might already be removed
+        perror("epoll_ctl: client_fd");
+        return;
+    }
+
+    // Clean up client object if it exists
+    std::map<int, Client *>::iterator it = clients.find(client_fd);
+    if (it != clients.end())
+    {
+        delete it->second;
+        clients.erase(it);
+    }
+
+    // Close the file descriptor
+    if (close(client_fd) == -1)
+        perror("close");
+
+    Utils::log("Closed connection for client fd: " + to_string_c98(client_fd), AnsiColor::RED);
+}
+
+bool isHexDigit(char c)
+{
+    return std::isxdigit(static_cast<unsigned char>(c)) != 0;
+}
+
+char hexToChar(char high, char low)
+{
+    int highVal = std::isdigit(high) ? high - '0' : std::tolower(high) - 'a' + 10;
+    int lowVal = std::isdigit(low) ? low - '0' : std::tolower(low) - 'a' + 10;
+    return static_cast<char>((highVal << 4) | lowVal);
+}
+
+std::string removePercentEncoded(const std::string &input)
+{
+    std::string result;
+    for (size_t i = 0; i < input.length(); ++i)
+    {
+        if (input[i] == '%' && i + 2 < input.length() &&
+            isHexDigit(input[i + 1]) && isHexDigit(input[i + 2]))
+        {
+            char decodedChar = hexToChar(input[i + 1], input[i + 2]);
+            result += decodedChar;
+            i += 2; // Skip the two hex digits
+        }
+        else
+        {
+            result += input[i];
+        }
+    }
+    return result;
+}
+
+// Main normalization function
+void normalize_path(std::string &path)
+{
+    if (path.empty())
+        return;
+
+    // Remove encoded characters like %20, %2F etc.
+    path = removePercentEncoded(path);
+
+    // Preserve leading slash if present
+    bool has_leading_slash = (path[0] == '/');
+
+    // Tokenize by '/', ignoring empty parts
+    std::vector<std::string> components;
+    std::string token;
+    std::istringstream iss(path);
+    while (std::getline(iss, token, '/'))
+    {
+        if (!token.empty() && token != ".")
+            components.push_back(token);
+    }
+
+    // Rebuild path
+    path.clear();
+    for (size_t i = 0; i < components.size(); ++i)
+    {
+        if (i > 0)
+            path += "/";
+        path += components[i];
+    }
+
+    if (has_leading_slash)
+        path = "/" + path;
+
+    // Remove trailing slash unless it's root
+    if (path.length() > 1 && path[path.length() - 1] == '/')
+        path.erase(path.length() - 1);
+}
+
+const ConfigParser::LocationConfig *findMatchingLocation(const std::vector<ConfigParser::LocationConfig> &locations, const std::string &requestPath)
+{
+    size_t longestMatch = 0;
+    const ConfigParser::LocationConfig *bestMatch = NULL;
+
+    for (size_t i = 0; i < locations.size(); ++i)
+    {
+        const std::string &locPath = locations[i].path;
+        if (requestPath.find(locPath) == 0 && locPath.length() > longestMatch)
+        {
+            longestMatch = locPath.length();
+            bestMatch = &locations[i];
+        }
+    }
+
+    return bestMatch;
+}
+
+void send_redirect_response(int client_fd, int status_code, const std::string &url)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 " << status_code << " Moved\r\n"
+        << "Location: " << url << "\r\n"
+        << "Content-Length: 0\r\n\r\n";
+    send(client_fd, oss.str().c_str(), oss.str().length(), 0);
+}
+
+bool isDirectory(const std::string &path)
+{
+    struct stat statbuf;
+    return stat(path.c_str(), &statbuf) == 0 && S_ISDIR(statbuf.st_mode);
+}
+
+std::string get_file_extension(const std::string &filename)
+{
+    size_t dot = filename.find_last_of('.');
+    if (dot == std::string::npos)
+        return "";
+    return filename.substr(dot);
+}
+
+void send_autoindex_response(int client_fd, const std::string &html)
+{
+    Response response;
+    response.addHeader("Content-Type", "text/html");
+    response.setBody(html);
+    std::string res_str = response.toString();
+    send(client_fd, res_str.c_str(), res_str.size(), 0);
+}
+
+std::string escape_html(const std::string &input)
+{
+    std::ostringstream escaped;
+    for (size_t i = 0; i < input.size(); ++i)
+    {
+        switch (input[i])
+        {
+        case '&':
+            escaped << "&amp;";
+            break;
+        case '<':
+            escaped << "&lt;";
+            break;
+        case '>':
+            escaped << "&gt;";
+            break;
+        case '"':
+            escaped << "&quot;";
+            break;
+        case '\'':
+            escaped << "&#39;";
+            break;
+        default:
+            escaped << input[i];
+            break;
+        }
+    }
+    return escaped.str();
+}
+
+std::string generate_autoindex(const std::string &dir_path, const std::string &uri)
+{
+    DIR *dir = opendir(dir_path.c_str());
+    if (!dir)
+        return "<html><head><meta charset=\"UTF-8\"><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1></body></html>";
+
+    std::ostringstream oss;
+    oss << "<!DOCTYPE html>\n";
+    oss << "<html lang=\"ar\">\n"; // Arabic language
+    oss << "<head>\n";
+    oss << "  <meta charset=\"UTF-8\">\n";
+    oss << "  <title>Index of " << escape_html(uri) << "</title>\n";
+    oss << "  <style>body { font-family: sans-serif; direction: rtl; }</style>\n";
+    oss << "</head>\n";
+    oss << "<body>\n";
+    oss << "  <h1>فهرس " << escape_html(uri) << "</h1>\n";
+    oss << "  <hr><pre>\n";
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL)
+    {
+        std::string name = entry->d_name;
+        if (name == ".")
+            continue;
+
+        std::string full_path = dir_path + "/" + name;
+        struct stat st;
+        if (stat(full_path.c_str(), &st) == 0)
+        {
+            if (S_ISDIR(st.st_mode))
+                name += "/";
+        }
+
+        // Safely encode both the href and visible name
+        std::string encoded_name = escape_html(name);
+        oss << "<a href=\"" << escape_html(uri + (uri[uri.length() - 1] == '/' ? "" : "/") + name) << "\">"
+            << encoded_name << "</a>\n";
+    }
+
+    oss << "  </pre><hr>\n";
+    oss << "</body></html>\n";
+    closedir(dir);
+    return oss.str();
+}
+
+void printRequest(const requestParser &req)
+{
+    std::cout << "Request Method: " << req.getMethod() << std::endl;
+    std::cout << "Request Path: " << req.getPath() << std::endl;
+    std::cout << "HTTP Version: " << req.getHttpVersion() << std::endl;
+    std::map<std::string, std::string> headers = req.getHeaders();
+    std::cout << "Request Headers:" << std::endl;
+    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
+    {
+        std::cout << "  " << it->first << ": " << it->second << std::endl;
+    }
+    std::cout << "Request Body: " << req.getBody() << std::endl;
+    std::cout << "-----------------------------" << std::endl;
+}
+
+int Server::prepareResponse(const requestParser &req, int client_fd)
+{
+    ConfigParser::ServerConfig serverConfig = clientToServergMap[client_fd];
+    std::string path = req.getPath();
+
+    printRequest(req);
+    const ConfigParser::LocationConfig *location = findMatchingLocation(serverConfig.locations, path);
+
+    // Handle redirection
+    if (location && !location->return_directive.empty())
+    {
+        send_error_response(client_fd, 302, "Moved Temporarily", serverConfig);
+        return -1;
+    }
+
+    // Check method
+    const std::string method = req.getMethod();
+    if (location && !location->allowed_methods.empty())
+    {
+        if (std::find(location->allowed_methods.begin(), location->allowed_methods.end(), method) == location->allowed_methods.end())
+        {
+            send_error_response(client_fd, 405, "Method Not Allowed", serverConfig);
+            return -1;
+        }
+    }
+
+    // Determine root
+    std::string root = (location && !location->root.empty()) ? location->root : serverConfig.root;
+    if (root.empty())
+    {
+        send_error_response(client_fd, 500, "Root not specified", serverConfig);
+        return -1;
+    }
+
+    // Join root + path
+    std::string full_path;
+    if (!root.empty() && !path.empty() && root[root.length() - 1] == '/' && path[0] == '/')
+        full_path = root + path.substr(1);
+    else if (!root.empty() && !path.empty() && root[root.length() - 1] != '/' && path[0] != '/')
+        full_path = root + "/" + path;
+    else
+        full_path = root + path;
+
+    normalize_path(full_path);
+
+    // Max body size check
+    size_t max_body_size = (location && location->limit_client_body_size != 0)
+                               ? location->limit_client_body_size
+                               : serverConfig.limit_client_body_size;
+
+    if (!req.getBody().empty() && req.getBody().size() > max_body_size)
+    {
+        send_error_response(client_fd, 413, "Payload Too Large", serverConfig);
+        return -1;
+    }
+
+    // CGI check
+    if (location && !location->cgi.empty())
+    {
+        std::string file_ext = get_file_extension(full_path);
+
+        std::map<std::string, std::string>::const_iterator it = location->cgi.find(file_ext);
+        if (it != location->cgi.end())
+        {
+            const std::string &interpreter = it->second;
+
+            CGIHandler cgiHandler;
+            std::string cgi_response = cgiHandler.handleCGI(full_path, req, interpreter);
+
+            if (cgi_response.empty())
+            {
+                send_error_response(client_fd, 500, "Internal Server Error", serverConfig);
+                return -1;
+            }
+
+            clients[client_fd]->setResponse(cgi_response);
+            return 0;
+        }
+    }
+
+    // File existence
+    if (access(full_path.c_str(), F_OK) == -1)
+    {
+        send_error_response(client_fd, 404, "Not Found", serverConfig);
+        return -1;
+    }
+
+    // Build response
+    Response response;
+    bool autoindex = location ? location->autoindex : serverConfig.autoindex;
+    if (method == "GET")
+    {
+        response = Response::buildGetResponse(req, full_path, autoindex, client_fd, serverConfig);
+    }
+    else if (method == "POST")
+    {
+        response = Response::buildPostResponse(req, full_path, client_fd, serverConfig);
+    }
+    else if (method == "DELETE")
+    {
+        response = Response::buildDeleteResponse(req, full_path, client_fd, serverConfig);
+    }
+    else
+    {
+        send_error_response(client_fd, 405, "Method Not Allowed", serverConfig);
+        return -1;
+    }
+    
+    // Send response
+    std::string response_str = response.toString();
+    clients[client_fd]->setResponse(response_str);
+    if (send(client_fd, response_str.c_str(), response_str.length(), 0) == -1)
+    {
+        perror("send");
+        closeClientConnection(client_fd);
+        return -1;
+    }
+    return 0;
+}
+
+IOStatus safeRead(int fd, char *buf, size_t size, ssize_t &bytes_read)
+{
+    bytes_read = read(fd, buf, size);
+    if (bytes_read > 0)
+        return IO_OK;
+    if (bytes_read == 0)
+        return IO_CLOSED;
+
+    int err = errno; // snapshot before doing anything else
+    if (err == EAGAIN || err == EWOULDBLOCK)
+        return IO_WOULDBLOCK;
+    return IO_ERROR;
+}
+
+IOStatus safeWrite(int fd, const char *buf, size_t size, ssize_t &bytes_written)
+{
+    bytes_written = write(fd, buf, size);
+    if (bytes_written >= 0)
+        return IO_OK;
+
+    int err = errno;
+    if (err == EAGAIN || err == EWOULDBLOCK)
+        return IO_WOULDBLOCK;
+    return IO_ERROR;
+}
+
+void Server::handleClientRead(int client_fd)
+{
+    if (clients.find(client_fd) == clients.end())
+    {
+        closeClientConnection(client_fd);
+        return;
+    }
+
+    char buffer[4096];
+    ssize_t bytes_read;
+
+    while (true)
+    {
+        IOStatus status = safeRead(client_fd, buffer, sizeof(buffer), bytes_read);
+
+        if (status == IO_CLOSED)
+        {
+            closeClientConnection(client_fd);
+            return;
+        }
+        else if (status == IO_ERROR)
+        {
+            closeClientConnection(client_fd);
+            return;
+        }
+        else if (status == IO_WOULDBLOCK)
+        {
+            break;
+        }
+
+        clients[client_fd]->appendToBuffer(std::string(buffer, bytes_read));
+    }
+
+    if (clients[client_fd]->processRequest())
+    {
+        const requestParser &request = clients[client_fd]->getRequest();
+        if (prepareResponse(request, client_fd) == -1)
+        {
+            closeClientConnection(client_fd);
+            return;
+        }
+
+        struct epoll_event event;
+        event.events = EPOLLOUT | EPOLLET;
+        event.data.fd = client_fd;
+        epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client_fd, &event);
+    }
+}
+
+void Server::handleClientWrite(int client_fd)
+{
+    if (clients.find(client_fd) == clients.end())
+    {
+        closeClientConnection(client_fd);
+        return;
+    }
+
+    Client *client = clients[client_fd];
+
+    if (!client->isResponseReady())
+    {
+        // Should not happen, but just in case
+        // client->prepareResponse();
+    }
+
+    std::string response = client->getResponse();
+    ssize_t bytes_sent = write(client_fd, response.c_str(), response.length());
+
+    if (bytes_sent == -1)
+    {
+        if (errno != EAGAIN && errno != EWOULDBLOCK)
+        {
+            perror("write");
+            closeClientConnection(client_fd);
+        }
+        return;
+    }
+
+    // For simplicity, we'll close the connection after sending the response
+    // In a real HTTP server, you might want to check for Keep-Alive header
+    closeClientConnection(client_fd);
+}
+
+void Server::handleConnections()
+{
+    signal(SIGINT, sighandler);
+    signal(SIGTERM, sighandler);
+
+    struct epoll_event events[MAX_EVENTS];
+
+    while (!_turnoff)
+    {
+        int num_events = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+        if (num_events == -1)
+        {
+            if (errno == EINTR)
+            {
+                // epoll_wait interrupted by signal (e.g., SIGINT/SIGTERM)
+                // This is expected, especially for graceful shutdown
+                continue;
+            }
+            perror("epoll_wait"); // Only print real errors
+            break;                // Or handle as appropriate
+        }
+
+        for (int i = 0; i < num_events; ++i)
+        {
+            int fd = events[i].data.fd;
+
+            // If the fd is one of the server sockets, accept new connection
+            if (server_fds.find(fd) != server_fds.end())
+            {
+                acceptNewConnection(fd);
+            }
+            // Otherwise, handle client socket events
+            else if (events[i].events & EPOLLIN)
+            {
+                handleClientRead(fd);
+            }
+            else if (events[i].events & EPOLLOUT)
+            {
+                handleClientWrite(fd);
+            }
+        }
+    }
+}
+
+void Server::Cleanup()
+{
+    for (std::map<int, Client *>::iterator iter = clients.begin(); iter != clients.end(); ++iter)
+    {
+        delete iter->second;
+    }
+    clients.clear();
+    server_fds.clear();
+    serverConfigMap.clear();
+    clientToServergMap.clear();
+}
+
+// Helper function to send an HTTP response (status line and headers only)
+void send_http_headers(int client_fd, const std::string &status_line,
+                       const std::string &content_type, size_t content_length,
+                       const std::string &connection_header = "close")
+{
+    std::ostringstream oss;
+    oss << status_line << "\r\n"
+        << "Content-Type: " << content_type << "\r\n"
+        << "Content-Length: " << content_length << "\r\n"
+        << "Connection: " << connection_header << "\r\n\r\n"; // End of headers
+
+    std::string header_response = oss.str();
+    write(client_fd, header_response.c_str(), header_response.length());
 }
 
 std::string to_string_c98(size_t val)
 {
-	std::ostringstream oss;
-	oss << val;
-	return oss.str();
+    std::ostringstream oss;
+    oss << val;
+    return oss.str();
 }
 
-void handle_requests(int server_fd, requestParser &req)
+void send_error_response(int client_fd, int status_code, const std::string &message, const ConfigParser::ServerConfig &serverConfig)
 {
-	while (true)
-	{
-		int client_fd = accept(server_fd, NULL, NULL);
-		if (client_fd < 0)
-		{
-			perror("accept");
-			continue;
-		}
+    std::string status_text;
+    std::string error_page_path;
 
-		char buffer[4096];
-		std::memset(buffer, 0, sizeof(buffer));
-		ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
-		if (bytes_read <= 0)
-		{
-			close(client_fd);
-			continue;
-		}
+    // Optional: Map status code to text (if you want a proper reason phrase)
+    switch (status_code)
+    {
+    case 302:
+        status_text = "Moved Temporarily";
+        break;
+    case 400:
+        status_text = "Bad Request";
+        break;
+    case 403:
+        status_text = "Forbidden";
+        break;
+    case 404:
+        status_text = "Not Found";
+        break;
+    case 405:
+        status_text = "Method Not Allowed";
+        break;
+    case 413:
+        status_text = "Payload Too Large";
+        break;
+    case 500:
+        status_text = "Internal Server Error";
+        break;
+    case 501:
+        status_text = "Not Implemented";
+        break;
+    case 502:
+        status_text = "Bad Gateway";
+        break;
+    default:
+        status_text = "Error";
+        break;
+    }
 
-		std::string raw_request(buffer);
-		req.parseRequest(raw_request);
+    // Check for custom error page
+    std::map<int, std::string>::const_iterator it = serverConfig.error_pages.find(status_code);
+    if (it != serverConfig.error_pages.end())
+    {
+        error_page_path = serverConfig.root + it->second;
+    }
+    else
+    {
+        // Default fallback error pages
+        if (status_code == 404)
+            error_page_path = "./www/epages/404.html";
+        else if (status_code == 500)
+            error_page_path = "./www/epages/500.html";
+        else if (status_code == 403)
+            error_page_path = "./www/epages/403.html";
+        else if (status_code == 400)
+            error_page_path = "./www/epages/400.html";
+        else if (status_code == 405)
+            error_page_path = "./www/epages/405.html";
+        else if (status_code == 413)
+            error_page_path = "./www/epages/413.html";
+        else if (status_code == 302)
+            error_page_path = "./www/epages/302.html";
+        else
+            error_page_path = "./www/epages/500.html";
+    }
 
-		std::cout << "== New HTTP Request ==\n";
-		std::cout << req.getMethod() << " " << req.getPath() << " " << req.getHttpVersion() << std::endl;
-		std::map<std::string, std::string>::const_iterator it;
-		for (it = req.getHeaders().begin(); it != req.getHeaders().end(); ++it)
-		{
-			std::cout << it->first << ": " << it->second << std::endl;
-		}
+    std::string response_body = ""; // initially empty
 
-		std::string body = "<h1>Hello from Webserv</h1>";
-		std::string response =
-			"HTTP/ 200 OK\r\n"
-			"Content-Type: text/html\r\n"
-			"Content-Length: " +
-			to_string_c98(body.length()) + "\r\n"
-											"\r\n" +
-			body;
-		write(client_fd, response.c_str(), response.length());
-		close(client_fd);
-	}
+    int error_fd = open(error_page_path.c_str(), O_RDONLY);
+    if (error_fd >= 0)
+    {
+        struct stat st;
+        if (fstat(error_fd, &st) == 0 && st.st_size > 0) // Check if file exists and is not empty
+        {
+            response_body.resize(st.st_size);
+            ssize_t bytesRead = read(error_fd, &response_body[0], st.st_size);
+            if (bytesRead <= 0 || response_body.find_first_not_of(" \t\n\r") == std::string::npos)
+            {
+                // File is empty or all whitespace, use fallback
+                response_body = "<!DOCTYPE html><html><head><title>Error " + to_string_c98(status_code) +
+                                "</title></head><body><h1>Error " + to_string_c98(status_code) + ": " +
+                                status_text + "</h1><p>" + message + "</p></body></html>";
+            }
+        }
+        else
+        {
+            // File stat failed or file size 0
+            response_body = "<!DOCTYPE html><html><head><title>Error " + to_string_c98(status_code) +
+                            "</title></head><body><h1>Error " + to_string_c98(status_code) + ": " +
+                            status_text + "</h1><p>" + message + "</p></body></html>";
+        }
+        close(error_fd);
+    }
+    else
+    {
+        // File doesn't exist or can't be opened
+        response_body = "<!DOCTYPE html><html><head><title>Error " + to_string_c98(status_code) +
+                        "</title></head><body><h1>Error " + to_string_c98(status_code) + ": " +
+                        status_text + "</h1><p>" + message + "</p></body></html>";
+    }
+
+    send_http_headers(client_fd, "HTTP/1.1 " + to_string_c98(status_code) + " " + status_text,
+                      "text/html", response_body.length());
+    write(client_fd, response_body.c_str(), response_body.length());
 }

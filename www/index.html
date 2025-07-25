@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebServ Project Overview</title>
+  <link rel="icon" href="https://placehold.co/32x32/000000/FFFFFF?text=WEB" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
+            'gradient': 'gradient 15s ease infinite',
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+      50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.8); }
+    }
+
+    @keyframes gradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .animate-pulse-glow {
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    .bg-gradient-animated {
+      background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+    }
+
+    .text-gradient {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .glass {
+      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .dark .glass {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .nav-link {
+      position: relative;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -4px;
+      left: 50%;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+
+    .nav-link:hover::after {
+      width: 100%;
+    }
+
+    code {
+      background: rgba(59, 130, 246, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .dark code {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900 text-gray-800 dark:text-gray-100 min-h-screen transition-all duration-500">
+  
+  <nav class="py-6 glass shadow-2xl mb-10 relative z-50 sticky top-0">
+    <div class="container mx-auto px-6">
+      <ul class="flex justify-center gap-8 text-lg font-semibold">
+        <li><a href="#" class="nav-link text-blue-600 dark:text-blue-400 underline">Home</a></li>
+        <li><a href="session.html" class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Session Management</a></li>
+        <li><a href="cgi.html" class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Unified CGI Test</a></li>
+        <li><a href="cookies.html" class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Cookies</a></li>
+        <li><a href="upload.html" class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">File Upload & Delete</a></li>
+      </ul>
+    </div>
+    <div class="absolute top-4 right-6">
+      <button id="darkModeToggle" class="p-3 rounded-full glass text-2xl transition-all duration-300 hover:scale-110 animate-pulse-glow">
+        🌙
+      </button>
+    </div>
+  </nav>
+
+  <main class="container mx-auto max-w-7xl px-6 space-y-20 relative z-10">
+
+    <!-- Hero Section -->
+    <section class="text-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-16 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 relative overflow-hidden transform hover:scale-[1.02] transition-all duration-700">
+      <div class="absolute inset-0 bg-gradient-animated opacity-5"></div>
+      <div class="animate-float relative z-10">
+        <h1 class="text-7xl md:text-8xl font-black text-gradient mb-8 drop-shadow-lg">
+          WebServ
+        </h1>
+      </div>
+      <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-12 max-w-5xl mx-auto leading-relaxed font-light relative z-10">
+        Your journey into understanding the core mechanics of a custom web server, built with precision and care. Explore how web requests are handled, dynamic content is generated, and user sessions are managed securely.
+      </p>
+      <div class="relative z-10">
+        <a href="#about"
+          class="inline-block bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-10 rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300 text-lg relative overflow-hidden group">
+          <span class="relative z-10">Discover More</span>
+          <div class="absolute inset-0 bg-white/20 transform -skew-x-12 translate-x-full group-hover:-translate-x-full transition-transform duration-700"></div>
+        </a>
+      </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-12 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 flex flex-col lg:flex-row items-center gap-12 transform hover:scale-[1.01] transition-all duration-500">
+      <div class="lg:w-1/2 space-y-6">
+        <h2 class="text-5xl font-bold text-gradient border-b-4 border-gradient-to-r from-blue-500 to-purple-500 pb-4 mb-8">About WebServ</h2>
+        <div class="space-y-6 text-lg leading-relaxed text-gray-700 dark:text-gray-300">
+          <p class="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-l-4 border-blue-500">
+            WebServ is a custom-built HTTP server written in <span class="font-bold text-blue-600 dark:text-blue-400">C++98</span> designed to process web requests efficiently while maintaining full non-blocking I/O operations. It serves static files, executes CGI scripts for dynamic content, manages sessions and cookies, and supports file uploads and deletions.
+          </p>
+          <p class="p-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border-l-4 border-purple-500">
+            Key design goals include <span class="font-semibold text-purple-600 dark:text-purple-400">robustness</span>, <span class="font-semibold text-purple-600 dark:text-purple-400">concurrency</span>, and <span class="font-semibold text-purple-600 dark:text-purple-400">compliance with HTTP standards</span>, making WebServ a practical and educational project that explores low-level network programming, event-driven I/O, and server architecture.
+          </p>
+          <p class="p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-l-4 border-green-500">
+            Developed with Unix system calls like <code>poll()</code>, <code>socket()</code>, <code>fork()</code>, and others, WebServ emphasizes non-blocking behaviour and proper resource management to handle multiple simultaneous clients without blocking or unnecessary CPU usage.
+          </p>
+        </div>
+      </div>
+      <div class="lg:w-1/2">
+        <div class="animate-float" style="animation-delay: 1s;">
+          <img src="https://plus.unsplash.com/premium_photo-1682146029185-198922bd8350?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            alt="Web Server Architecture Diagram" 
+            class="rounded-2xl shadow-2xl w-full transform hover:scale-105 hover:rotate-1 transition-all duration-700 border-4 border-white/50 dark:border-gray-700/50" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-12 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 flex flex-col lg:flex-row-reverse items-center gap-12 transform hover:scale-[1.01] transition-all duration-500">
+      <div class="lg:w-1/2 space-y-8">
+        <h2 class="text-5xl font-bold text-gradient border-b-4 border-gradient-to-r from-green-500 to-blue-500 pb-4 mb-8">Core Features & HTTP Compliance</h2>
+        
+        <div class="grid gap-6">
+          <div class="flex items-start gap-4 p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 transform hover:scale-105 transition-all duration-300 border border-blue-200 dark:border-blue-700/50">
+            <div class="w-3 h-3 bg-blue-500 rounded-full mt-2 flex-shrink-0 animate-pulse"></div>
+            <div>
+              <span class="font-bold text-blue-600 dark:text-blue-400 text-lg">Multi-port Listening:</span>
+              <p class="text-gray-700 dark:text-gray-300 mt-1">Serve multiple websites or services by listening on various interface:port combinations.</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-4 p-6 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 transform hover:scale-105 transition-all duration-300 border border-purple-200 dark:border-purple-700/50">
+            <div class="w-3 h-3 bg-purple-500 rounded-full mt-2 flex-shrink-0 animate-pulse" style="animation-delay: 0.5s;"></div>
+            <div>
+              <span class="font-bold text-purple-600 dark:text-purple-400 text-lg">Non-blocking I/O:</span>
+              <p class="text-gray-700 dark:text-gray-300 mt-1">All network communication managed using <code>poll()</code> without blocking.</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-4 p-6 rounded-2xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 transform hover:scale-105 transition-all duration-300 border border-green-200 dark:border-green-700/50">
+            <div class="w-3 h-3 bg-green-500 rounded-full mt-2 flex-shrink-0 animate-pulse" style="animation-delay: 1s;"></div>
+            <div>
+              <span class="font-bold text-green-600 dark:text-green-400 text-lg">HTTP Methods:</span>
+              <p class="text-gray-700 dark:text-gray-300 mt-1">Supports <code>GET</code>, <code>POST</code>, and <code>DELETE</code> with proper status codes.</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-4 p-6 rounded-2xl bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 transform hover:scale-105 transition-all duration-300 border border-yellow-200 dark:border-yellow-700/50">
+            <div class="w-3 h-3 bg-yellow-500 rounded-full mt-2 flex-shrink-0 animate-pulse" style="animation-delay: 1.5s;"></div>
+            <div>
+              <span class="font-bold text-yellow-600 dark:text-yellow-400 text-lg">CGI Execution:</span>
+              <p class="text-gray-700 dark:text-gray-300 mt-1">Runs external scripts (PHP, Python, Bash) with full environment management.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-2xl border-2 border-indigo-200 dark:border-indigo-700/50">
+          <p class="text-lg leading-relaxed text-gray-700 dark:text-gray-300">
+            Although full HTTP RFC compliance is not mandatory, WebServ aligns closely with <span class="font-bold text-indigo-600 dark:text-indigo-400">HTTP/1.0</span> and <span class="font-bold text-indigo-600 dark:text-indigo-400">HTTP/1.1</span> standards, making it compatible with common browsers and tools like NGINX for behavior comparison.
+          </p>
+        </div>
+      </div>
+      <div class="lg:w-1/2">
+        <div class="animate-float" style="animation-delay: 2s;">
+          <img src="https://plus.unsplash.com/premium_photo-1664297989345-f4ff2063b212?q=80&w=1098&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            alt="HTTPS Security Diagram" 
+            class="rounded-2xl shadow-2xl w-full transform hover:scale-105 hover:-rotate-1 transition-all duration-700 border-4 border-white/50 dark:border-gray-700/50" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Technical Highlights -->
+    <section class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-12 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 transform hover:scale-[1.01] transition-all duration-500">
+      <h2 class="text-5xl font-bold text-gradient text-center mb-16">Technical Highlights</h2>
+      <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
+        
+        <div class="group bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/30 p-8 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105 transition-all duration-500 border border-blue-200 dark:border-blue-700/50">
+          <div class="text-5xl mb-6 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">⚡</div>
+          <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-4">Non-blocking Networking</h3>
+          <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+            Utilizing system calls like <code>poll()</code> to handle multiple connections concurrently without threading or blocking calls.
+          </p>
+        </div>
+        
+        <div class="group bg-gradient-to-br from-purple-50 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/30 p-8 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105 transition-all duration-500 border border-purple-200 dark:border-purple-700/50">
+          <div class="text-5xl mb-6 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">🔧</div>
+          <h3 class="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-4">CGI & Script Integration</h3>
+          <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+            Supports execution of external scripts with full environment setup, enabling dynamic web content generation.
+          </p>
+        </div>
+        
+        <div class="group bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/30 p-8 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105 transition-all duration-500 border border-green-200 dark:border-green-700/50">
+          <div class="text-5xl mb-6 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">🔍</div>
+          <h3 class="text-2xl font-bold text-green-600 dark:text-green-400 mb-4">Robust Request Parsing</h3>
+          <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+            Parses HTTP requests efficiently, handling headers, chunked transfer encoding, and ensuring safe response generation.
+          </p>
+        </div>
+        
+        <div class="group bg-gradient-to-br from-yellow-50 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/30 p-8 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105 transition-all duration-500 border border-yellow-200 dark:border-yellow-700/50">
+          <div class="text-5xl mb-6 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">🍪</div>
+          <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mb-4">Session Management</h3>
+          <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+            Manages user sessions with cookies, allowing for persistent, stateful client-server interaction.
+          </p>
+        </div>
+        
+        <div class="group bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-900/20 dark:to-rose-900/30 p-8 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105 transition-all duration-500 border border-red-200 dark:border-red-700/50">
+          <div class="text-5xl mb-6 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">📁</div>
+          <h3 class="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">File Upload & Security</h3>
+          <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+            Handles multipart form data securely, with file size limits and safe storage paths.
+          </p>
+        </div>
+        
+        <div class="group bg-gradient-to-br from-indigo-50 to-violet-100 dark:from-indigo-900/20 dark:to-violet-900/30 p-8 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105 transition-all duration-500 border border-indigo-200 dark:border-indigo-700/50">
+          <div class="text-5xl mb-6 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">🛡️</div>
+          <h3 class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-4">Error Handling</h3>
+          <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+            Comprehensive error pages with HTTP codes and user-friendly messages for all common failure scenarios.
+          </p>
+        </div>
+        
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-24 py-16 glass text-center relative z-10">
+    <div class="container mx-auto px-6">
+      <div class="text-4xl mb-4 animate-pulse">⚡</div>
+      <p class="text-gray-600 dark:text-gray-400 text-xl font-light">
+        Built with ❤️ and C++98 • WebServ Project
+      </p>
+      <div class="mt-6 flex justify-center space-x-4">
+        <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+        <div class="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 0.1s;"></div>
+        <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Dark mode toggle
+    const toggleBtn = document.getElementById('darkModeToggle');
+    const html = document.documentElement;
+    
+    // Check for saved theme preference or default to light mode
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    if (currentTheme === 'dark') {
+      html.classList.add('dark');
+      toggleBtn.textContent = '☀️';
+    }
+    
+    toggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      html.classList.toggle('dark');
+      
+      // Add click animation
+      toggleBtn.style.transform = 'scale(0.8)';
+      setTimeout(() => {
+        toggleBtn.style.transform = 'scale(1)';
+      }, 150);
+      
+      if (html.classList.contains('dark')) {
+        toggleBtn.textContent = '☀️';
+        localStorage.setItem('theme', 'dark');
+      } else {
+        toggleBtn.textContent = '🌙';
+        localStorage.setItem('theme', 'light');
+      }
+    });
+
+    // Smooth scroll for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      });
+    });
+
+    // Intersection Observer for scroll animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -100px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+          entry.target.classList.add('animate-in');
+        }
+      });
+    }, observerOptions);
+
+    // Observe all sections for scroll animations
+    document.querySelectorAll('section').forEach((section, index) => {
+      section.style.opacity = '0';
+      section.style.transform = 'translateY(50px)';
+      section.style.transition = `all 0.8s cubic-bezier(0.4, 0, 0.2, 1) ${index * 0.1}s`;
+      observer.observe(section);
+    });
+
+    // Page load animation
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.querySelectorAll('section').forEach(section => {
+          section.style.opacity = '1';
+          section.style.transform = 'translateY(0)';
+        });
+      }, 200);
+    });
+  </script>
+</body>
+
+</html>

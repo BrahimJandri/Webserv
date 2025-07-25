@@ -1,63 +1,42 @@
-#include "Config/ConfigParser.hpp"
-#include "HTTP/Request.hpp"
-#include "Utils/Logger.hpp"
+#include "./Parser/ConfigParser.hpp"
+#include "./Utils/Logger.hpp"
 #include "Utils/AnsiColor.hpp"
 #include "Server/Server.hpp"
-#include <iostream>
-#include <fcntl.h>
+
+
+int start_server(const std::string &config_path)
+{
+    Utils::log("Starting Webserv with configuration: " + config_path, AnsiColor::GREEN);
+    ConfigParser parser;
+    try
+    {
+        parser.parseFile(config_path);
+    }
+    catch (const std::runtime_error &e)
+    {
+        Utils::log("Error parsing configuration: " + std::string(e.what()), AnsiColor::RED);
+        return 1;
+    }
+    size_t serverCount = parser.getServerCount();
+    Utils::log("Found " + Utils::intToString(serverCount) + " server configurations", AnsiColor::CYAN);
+    parser.printConfig();
+    Server server;
+    server.setupServers(parser);      // 👈 create sockets + register to epoll
+    server.handleConnections();       // 👈 single loop to handle all
+    server.Cleanup();                // 👈 cleanup all clients and sockets
+    std::cout << AnsiColor::BOLD_RED << "Webserv stopped" << AnsiColor::RESET << std::endl;
+    return 0;
+}
 
 int main(int ac, char **av)
 {
-	if (ac == 2)
-	{
-		Utils::log("Starting Webserv with configuration: " + std::string(av[1]), AnsiColor::GREEN);
-		requestParser req; // hada class fih parsed request
-		// ConfigParser parser(av[1]);
-
-		std::string configFile = av[1];
-		ConfigParser parser(configFile);
-		
-		parser.parse();
-
-		
-		
-		if (!parser.getServerCount())
-		{
-			Utils::logError("No server configurations found in the provided config file.");
-			return 1;
-		}
-		
-		// Utils::log("Found " + Utils::intToString(servers.size()) + " server configurations", AnsiColor::CYAN);
-		
-		for (size_t i = 0; i < parser.getServerCount(); ++i)
-		{
-			const ServerConfig& servers = parser.getServerConfig(i);
-			ConfigValue host = servers.getDirective("host");
-			ConfigValue port = servers.getDirective("port");
-
-			Utils::log("Setting up server on " + host.asString() + ":" + Utils::intToString(port.asInt()), AnsiColor::YELLOW);
-
-			int fd = create_server_socket(host.asString(), port.asInt());
-			if (fd != -1)
-			{
-				// Make the socket non-blocking
-				int flags = fcntl(fd, F_GETFL, 0);
-				fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-				
-				Server server;
-				server.handleConnections(fd);  // This will start the event loop
-			}
-			else
-			{
-				Utils::logError("Failed to create socket for server " + Utils::intToString(i));
-			}
-		}
-	}
-	else
-	{
-		std::cerr << AnsiColor::RED << "Usage: " << av[0] << " <config_file.conf>" << AnsiColor::RESET << std::endl;
-		return 1;
-	}
-	return 0;
+    if (ac == 2)
+        return start_server(av[1]);
+    else if (ac == 1)
+        return start_server("./conf/default.conf");
+    else
+    {
+        std::cerr << AnsiColor::RED << "Usage: " << av[0] << " <config_file.conf>" << AnsiColor::RESET << std::endl;
+        return 1;
+    }
 }
-

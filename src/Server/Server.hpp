@@ -1,31 +1,63 @@
 #pragma once
 
-#include <map>
-#include <string>
-#include <fcntl.h>
-#include <Client.hpp>
+#include <dirent.h> // opendit
 #include <sys/epoll.h>
-#include "../HTTP/Request.hpp"
+#include <arpa/inet.h> // sockaddr
+#include <fcntl.h> // F_GETFL ..
+#include <sys/stat.h> 
+#include "./Parser/ConfigParser.hpp"
+#include "./Client/Client.hpp"
+#include "../Request/Request.hpp"
+#include "../Response/Response.hpp"
+#include "../Utils/AnsiColor.hpp"
+#include "../Utils/Logger.hpp"
 
-class Server {
+enum IOStatus
+{
+    IO_OK,
+    IO_CLOSED,
+    IO_WOULDBLOCK,
+    IO_ERROR
+};
+
+class Server
+{
 private:
-	int epoll_fd;
-	std::map<int, Client*> clients;
-	static const int MAX_EVENTS = 64;
-public:
-	Server();
-	~Server();
+    int epoll_fd;
+    std::map<int, Client *> clients;
+    static const int MAX_EVENTS = 64;
+    std::set<int> server_fds;
+    std::map<int, std::vector<ConfigParser::ServerConfig> > serverConfigMap; // EDITED BY RACHID
+    std::map<int, ConfigParser::ServerConfig> clientToServergMap;
 
-	void start(const std::string &host, int port);
-	void stop();
-	void handleConnections(int server_fd);
-	void acceptNewConnection(int server_fd);
-	void handleClientRead(int client_fd);
-	void handleClientWrite(int client_fd);
-	void handleClientRequest(int client_fd, requestParser &req);
-	void sendResponse(int client_fd, const std::string &response);
-	void closeClientConnection(int client_fd);
+public:
+    Server();
+    ~Server();
+
+    static volatile sig_atomic_t _turnoff;
+
+    void setupServers(const ConfigParser &parser);
+    void handleConnections();
+    void acceptNewConnection(int server_fd);
+    void handleClientRead(int client_fd);
+    void handleClientWrite(int client_fd);
+    void closeClientConnection(int client_fd);
+    int prepareResponse(const requestParser &req, int client_fd);
+    void Cleanup();
+
 };
 
 int create_server_socket(const std::string &host, int port);
-void handle_requests(int server_fd, requestParser &req);
+std::string to_string_c98(size_t val);
+void send_error_response(int client_fd, int status_code, const std::string &message, const ConfigParser::ServerConfig &serverConfig);
+
+void send_http_headers(int client_fd, const std::string &status_line,
+                       const std::string &content_type, size_t content_length,
+                       const std::string &connection_header);
+bool isDirectory(const std::string &path);
+
+std::string generate_autoindex(const std::string &dir_path, const std::string &uri);
+void send_autoindex_response(int client_fd, const std::string &html);
+const ConfigParser::LocationConfig *findMatchingLocation(const std::vector<ConfigParser::LocationConfig> &locations, const std::string &requestPath);
+void normalize_path(std::string &path);
+std::string get_file_extension(const std::string &filename);
