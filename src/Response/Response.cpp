@@ -217,57 +217,53 @@ Response Response::buildAutoindexResponse(const std::string &htmlContent)
 
 Response Response::buildGetResponse(const requestParser &request, const std::string &docRoot, const bool autoindex, int client_fd, const ConfigParser::ServerConfig &serverConfig)
 {
-    std::string requestPath = request.getPath();
-    normalize_path(requestPath);
-    std::string fullPath = docRoot;
-
     if (docRoot.empty())
     {
-        std::cerr << "ERROR: Document root is empty" << std::endl;
         send_error_response(client_fd, 500, "Internal Server Error", serverConfig);
         return Response();
     }
 
-    // Check if the resource exists
+    std::string requestPath = request.getPath();
+    std::string fullPath = docRoot;
+
     if (!fileExists(fullPath))
     {
-        std::cerr << "ERROR: Resource not found: " << fullPath << std::endl;
         send_error_response(client_fd, 404, "Not Found", serverConfig);
         return Response();
     }
 
-    // Handle directory case
     if (isDirectory(fullPath))
     {
         if (fullPath[fullPath.length() - 1] != '/')
             fullPath += '/';
 
-        std::string indexPath = fullPath + "index.html";
-
-        if (fileExists(indexPath))
+        if (!serverConfig.locations.empty() && !serverConfig.locations[0].index.empty())
         {
-            fullPath = indexPath;
-        }
-        else
-        {
-            if (autoindex)
+            std::string indexPath = fullPath + serverConfig.locations[0].index[0];
+            if (fileExists(indexPath))
             {
-                std::string autoindexPage = generate_autoindex(fullPath, request.getPath());
+                fullPath = indexPath;
+            }
+            else if (autoindex)
+            {
+                std::string autoindexPage = generate_autoindex(fullPath, requestPath);
                 return buildAutoindexResponse(autoindexPage);
             }
             else
             {
-                std::cerr << "Access denied no auto-indexing: " << fullPath << std::endl;
                 send_error_response(client_fd, 403, "Forbidden", serverConfig);
                 return Response();
             }
         }
+        else
+        {
+            send_error_response(client_fd, 403, "Forbidden", serverConfig);
+            return Response();
+        }
     }
 
-    // Check read permissions
     if (access(fullPath.c_str(), R_OK) != 0)
     {
-        std::cerr << "ERROR: Access denied: " << fullPath << std::endl;
         send_error_response(client_fd, 403, "Forbidden", serverConfig);
         return Response();
     }

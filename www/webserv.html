@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="https://placehold.co/32x32/000000/FFFFFF?text=MAP" />
+    <title>C++98 Webserver Architecture Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .flow-arrow {
+            position: relative;
+        }
+        .flow-arrow::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 12px solid #3b82f6;
+        }
+        .component-box {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .component-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        .hidden-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .show-details {
+            max-height: 1000px;
+        }
+        .pulse-glow {
+            animation: pulse-glow 2s infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-slate-800 mb-4">C++98 Webserver Architecture</h1>
+            <p class="text-lg text-slate-600">Complete flow from configuration parsing to client response</p>
+            <div class="mt-4 flex justify-center space-x-4">
+                <button id="resetFlow" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Reset Animation</button>
+                <button id="startFlow" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Start Flow</button>
+            </div>
+        </div>
+
+        <!-- Phase 1: Initialization -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Phase 1: Server Initialization</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Config Parser -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-purple-500" data-phase="1">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">⚙️</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">ConfigParser</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Parses configuration file and validates server settings</p>
+                    <div class="hidden-details" id="config-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Key Functions:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>parseFile() - Reads config file</li>
+                                <li>parseServer() - Parses server blocks</li>
+                                <li>parseLocation() - Handles location directives</li>
+                                <li>validatePorts() - Ensures no port conflicts</li>
+                            </ul>
+                            <strong class="block mt-3">Supports:</strong>
+                            <ul class="list-disc list-inside mt-1 space-y-1">
+                                <li>Multiple server blocks</li>
+                                <li>Virtual hosts</li>
+                                <li>Location-specific configs</li>
+                                <li>CGI mappings</li>
+                                <li>Error pages</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Server Setup -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-blue-500" data-phase="1">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">🏗️</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">Server Setup</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Creates sockets and configures epoll for event handling</p>
+                    <div class="hidden-details" id="setup-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Process:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>create_server_socket() for each host:port</li>
+                                <li>Set SO_REUSEADDR option</li>
+                                <li>Bind to address and listen</li>
+                                <li>Add to epoll instance</li>
+                                <li>Map server configs to file descriptors</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Epoll Setup -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-green-500" data-phase="1">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">📡</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">Epoll Event Loop</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">High-performance I/O event notification mechanism</p>
+                    <div class="hidden-details" id="epoll-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Benefits:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>Handles thousands of connections</li>
+                                <li>Edge-triggered notifications</li>
+                                <li>Non-blocking I/O operations</li>
+                                <li>Single thread event loop</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flow Arrow -->
+        <div class="flex justify-center mb-8">
+            <div class="flow-arrow w-1 h-12 bg-blue-500"></div>
+        </div>
+
+        <!-- Phase 2: Connection Handling -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Phase 2: Connection Handling</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Accept Connection -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-orange-500" data-phase="2">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">🤝</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">Accept Connection</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Accepts new client connections and adds them to epoll</p>
+                    <div class="hidden-details" id="accept-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Steps:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>accept() new client socket</li>
+                                <li>Set non-blocking mode</li>
+                                <li>Add to epoll with EPOLLIN | EPOLLET</li>
+                                <li>Create Client object</li>
+                                <li>Map client to server config</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Client Management -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-cyan-500" data-phase="2">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">👥</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">Client Management</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Manages client state and buffers incoming data</p>
+                    <div class="hidden-details" id="client-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Client Class Features:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>Request buffering</li>
+                                <li>Content-Length handling</li>
+                                <li>Request completion detection</li>
+                                <li>Response preparation</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flow Arrow -->
+        <div class="flex justify-center mb-8">
+            <div class="flow-arrow w-1 h-12 bg-blue-500"></div>
+        </div>
+
+        <!-- Phase 3: Request Processing -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Phase 3: Request Processing</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Request Parser -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-red-500" data-phase="3">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">🔍</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">Request Parser</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Parses HTTP request headers and body</p>
+                    <div class="hidden-details" id="parser-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Parses:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>HTTP method, path, version</li>
+                                <li>Headers (case-insensitive)</li>
+                                <li>Request body (POST/PUT)</li>
+                                <li>Content-Length handling</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Route Matching -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-yellow-500" data-phase="3">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">🎯</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">Route Matching</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Finds matching location block for request path</p>
+                    <div class="hidden-details" id="route-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Process:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>Normalize request path</li>
+                                <li>Find longest matching location</li>
+                                <li>Check allowed methods</li>
+                                <li>Handle redirects</li>
+                                <li>Validate body size limits</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Path Resolution -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-indigo-500" data-phase="3">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">📂</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">Path Resolution</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Resolves request path to filesystem location</p>
+                    <div class="hidden-details" id="path-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Features:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>URL decoding (%20, etc.)</li>
+                                <li>Path normalization</li>
+                                <li>Root + path joining</li>
+                                <li>Directory traversal prevention</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flow Arrow -->
+        <div class="flex justify-center mb-8">
+            <div class="flow-arrow w-1 h-12 bg-blue-500"></div>
+        </div>
+
+        <!-- Phase 4: Response Generation -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Phase 4: Response Generation</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- GET Handler -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-green-500" data-phase="4">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">📥</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">GET Handler</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Serves files and directories</p>
+                    <div class="hidden-details" id="get-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Features:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>File serving with MIME types</li>
+                                <li>Directory autoindex</li>
+                                <li>Index file handling</li>
+                                <li>Permission checking</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- POST Handler -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-blue-500" data-phase="4">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">📤</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">POST Handler</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Handles form data and file uploads</p>
+                    <div class="hidden-details" id="post-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Supports:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>application/x-www-form-urlencoded</li>
+                                <li>multipart/form-data</li>
+                                <li>application/json</li>
+                                <li>File uploads</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DELETE Handler -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-red-500" data-phase="4">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">🗑️</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">DELETE Handler</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Removes files and directories</p>
+                    <div class="hidden-details" id="delete-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Safety:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>Path validation</li>
+                                <li>Permission checking</li>
+                                <li>Recursive directory deletion</li>
+                                <li>Error handling</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CGI Handler -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-purple-500" data-phase="4">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">⚡</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">CGI Handler</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Executes dynamic scripts</p>
+                    <div class="hidden-details" id="cgi-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Process:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>File extension mapping</li>
+                                <li>Environment setup</li>
+                                <li>Script execution</li>
+                                <li>Output parsing</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flow Arrow -->
+        <div class="flex justify-center mb-8">
+            <div class="flow-arrow w-1 h-12 bg-blue-500"></div>
+        </div>
+
+        <!-- Phase 5: Response Delivery -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Phase 5: Response Delivery</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Response Builder -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-teal-500" data-phase="5">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">🏗️</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">Response Builder</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Constructs HTTP response with headers and body</p>
+                    <div class="hidden-details" id="response-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Components:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>Status line (HTTP/1.1 200 OK)</li>
+                                <li>Response headers</li>
+                                <li>Content-Type detection</li>
+                                <li>Content-Length calculation</li>
+                                <li>Response body</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Handling -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-rose-500" data-phase="5">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-rose-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">⚠️</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">Error Handling</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Generates appropriate error responses</p>
+                    <div class="hidden-details" id="error-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Error Codes:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>400 Bad Request</li>
+                                <li>403 Forbidden</li>
+                                <li>404 Not Found</li>
+                                <li>405 Method Not Allowed</li>
+                                <li>413 Payload Too Large</li>
+                                <li>500 Internal Server Error</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Send Response -->
+                <div class="component-box bg-white rounded-xl p-6 shadow-lg border-l-4 border-emerald-500" data-phase="5">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">📡</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">Send Response</h3>
+                    </div>
+                    <p class="text-slate-600 mb-4">Delivers response to client and cleans up</p>
+                    <div class="hidden-details" id="send-details">
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm">
+                            <strong>Process:</strong>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>Non-blocking send()</li>
+                                <li>Handle partial writes</li>
+                                <li>Connection cleanup</li>
+                                <li>Client object destruction</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Features Section -->
+        <div class="bg-white rounded-xl p-8 shadow-lg mb-8">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Key Features & Architecture Highlights</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-blue-800 mb-2">C++98 Compliance</h3>
+                    <ul class="text-sm text-blue-700 space-y-1">
+                        <li>• No C++11+ features used</li>
+                        <li>• Manual memory management</li>
+                        <li>• Traditional STL containers</li>
+                        <li>• POSIX-compliant system calls</li>
+                    </ul>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-green-800 mb-2">Performance</h3>
+                    <ul class="text-sm text-green-700 space-y-1">
+                        <li>• Epoll-based event loop</li>
+                        <li>• Non-blocking I/O</li>
+                        <li>• Single-threaded design</li>
+                        <li>• Efficient client management</li>
+                    </ul>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-purple-800 mb-2">HTTP Features</h3>
+                    <ul class="text-sm text-purple-700 space-y-1">
+                        <li>• GET, POST, DELETE methods</li>
+                        <li>• Multipart file uploads</li>
+                        <li>• CGI script execution</li>
+                        <li>• Virtual host support</li>
+                    </ul>
+                </div>
+                <div class="bg-orange-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-orange-800 mb-2">Configuration</h3>
+                    <ul class="text-sm text-orange-700 space-y-1">
+                        <li>• Nginx-style config syntax</li>
+                        <li>• Multiple server blocks</li>
+                        <li>• Location-based routing</li>
+                        <li>• Custom error pages</li>
+                    </ul>
+                </div>
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-red-800 mb-2">Security</h3>
+                    <ul class="text-sm text-red-700 space-y-1">
+                        <li>• Path traversal prevention</li>
+                        <li>• Request size limits</li>
+                        <li>• Method validation</li>
+                        <li>• Safe file operations</li>
+                    </ul>
+                </div>
+                <div class="bg-teal-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-teal-800 mb-2">Robustness</h3>
+                    <ul class="text-sm text-teal-700 space-y-1">
+                        <li>• Graceful error handling</li>
+                        <li>• Signal handling (SIGINT/SIGTERM)</li>
+                        <li>• Resource cleanup</li>
+                        <li>• Comprehensive logging</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flow Legend -->
+        <div class="bg-white rounded-xl p-6 shadow-lg">
+            <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Interactive Guide</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="font-semibold text-slate-700 mb-2">How to use this map:</p>
+                    <ul class="space-y-1 text-slate-600">
+                        <li>• Click on any component to see detailed information</li>
+                        <li>• Use "Start Flow" to see the processing sequence</li>
+                        <li>• Colors represent different processing phases</li>
+                    </ul>
+                </div>
+                <div>
+                    <p class="font-semibold text-slate-700 mb-2">Color coding:</p>
+                    <div class="space-y-1">
+                        <div class="flex items-center"><div class="w-4 h-4 bg-purple-500 rounded mr-2"></div><span>Configuration & Setup</span></div>
+                        <div class="flex items-center"><div class="w-4 h-4 bg-orange-500 rounded mr-2"></div><span>Connection Management</span></div>
+                        <div class="flex items-center"><div class="w-4 h-4 bg-red-500 rounded mr-2"></div><span>Request Processing</span></div>
+                        <div class="flex items-center"><div class="w-4 h-4 bg-green-500 rounded mr-2"></div><span>Response Generation</span></div>
+                        <div class="flex items-center"><div class="w-4 h-4 bg-teal-500 rounded mr-2"></div><span>Response Delivery</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Interactive functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle details on component click
+            const components = document.querySelectorAll('.component-box');
+            components.forEach(component => {
+                component.addEventListener('click', function() {
+                    const details = this.querySelector('.hidden-details');
+                    if (details) {
+                        details.classList.toggle('show-details');
+                    }
+                });
+            });
+
+            // Flow animation
+            let currentPhase = 0;
+            let animationTimeout;
+
+            function startFlowAnimation() {
+                // Reset all components
+                resetAnimation();
+                currentPhase = 0;
+                animateNextPhase();
+            }
+
+            function animateNextPhase() {
+                currentPhase++;
+                if (currentPhase > 5) {
+                    // Animation complete
+                    setTimeout(resetAnimation, 2000);
+                    return;
+                }
+
+                // Highlight components of current phase
+                const phaseComponents = document.querySelectorAll(`[data-phase="${currentPhase}"]`);
+                phaseComponents.forEach(component => {
+                    component.classList.add('pulse-glow');
+                });
+
+                // Move to next phase after delay
+                animationTimeout = setTimeout(() => {
+                    phaseComponents.forEach(component => {
+                        component.classList.remove('pulse-glow');
+                    });
+                    animateNextPhase();
+                }, 3000);
+            }
+
+            function resetAnimation() {
+                clearTimeout(animationTimeout);
+                currentPhase = 0;
+                document.querySelectorAll('.pulse-glow').forEach(el => {
+                    el.classList.remove('pulse-glow');
+                });
+            }
+
+            // Button event listeners
+            document.getElementById('startFlow').addEventListener('click', startFlowAnimation);
+            document.getElementById('resetFlow').addEventListener('click', resetAnimation);
+
+            // Add hover effects for better UX
+            components.forEach(component => {
+                component.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+                
+                component.addEventListener('mouseleave', function() {
+                    if (!this.classList.contains('pulse-glow')) {
+                        this.style.transform = 'translateY(0)';
+                    }
+                });
+            });
+
+            // Auto-start animation after page load
+            setTimeout(startFlowAnimation, 1000);
+        });
+
+        // Add smooth scrolling for better navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                // Close all open details
+                document.querySelectorAll('.show-details').forEach(detail => {
+                    detail.classList.remove('show-details');
+                });
+            }
+            if (e.key === ' ' || e.key === 'Enter') {
+                // Start/restart animation
+                if (e.target.tagName !== 'BUTTON') {
+                    e.preventDefault();
+                    document.getElementById('startFlow').click();
+                }
+            }
+        });
+
+        // Add touch support for mobile
+        let touchStartY = 0;
+        document.addEventListener('touchstart', function(e) {
+            touchStartY = e.touches[0].clientY;
+        });
+
+        document.addEventListener('touchend', function(e) {
+            const touchEndY = e.changedTouches[0].clientY;
+            const diff = touchStartY - touchEndY;
+            
+            // Swipe up gesture to start animation
+            if (diff > 50) {
+                document.getElementById('startFlow').click();
+            }
+            // Swipe down gesture to reset
+            else if (diff < -50) {
+                document.getElementById('resetFlow').click();
+            }
+        });
+
+        // Performance monitoring
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, {
+            threshold: 0.1
+        });
+
+        // Observe all components for intersection
+        document.querySelectorAll('.component-box').forEach(box => {
+            box.style.opacity = '0';
+            box.style.transform = 'translateY(20px)';
+            box.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(box);
+        });
+
+        // Add progress indicator
+        function createProgressIndicator() {
+            const progress = document.createElement('div');
+            progress.id = 'progress-indicator';
+            progress.className = 'fixed top-0 left-0 w-full h-1 bg-blue-500 z-50 transition-all duration-300';
+            progress.style.transform = 'scaleX(0)';
+            progress.style.transformOrigin = 'left';
+            document.body.appendChild(progress);
+
+            window.addEventListener('scroll', () => {
+                const scrolled = window.pageYOffset;
+                const maxHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const scrollProgress = scrolled / maxHeight;
+                progress.style.transform = `scaleX(${scrollProgress})`;
+            });
+        }
+
+        createProgressIndicator();
+
+        // Add tooltip functionality
+        function addTooltips() {
+            const components = document.querySelectorAll('.component-box');
+            components.forEach(component => {
+                const title = component.querySelector('h3').textContent;
+                const description = component.querySelector('p').textContent;
+                component.setAttribute('title', `${title}: ${description}`);
+            });
+        }
+
+        addTooltips();
+
+        // Add search functionality
+        function addSearchFunctionality() {
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Search components...';
+            searchInput.className = 'w-full max-w-md mx-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4';
+            
+            const headerDiv = document.querySelector('.text-center.mb-8');
+            headerDiv.appendChild(searchInput);
+
+            searchInput.addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const components = document.querySelectorAll('.component-box');
+                
+                components.forEach(component => {
+                    const title = component.querySelector('h3').textContent.toLowerCase();
+                    const description = component.querySelector('p').textContent.toLowerCase();
+                    const isMatch = title.includes(searchTerm) || description.includes(searchTerm);
+                    
+                    component.style.display = isMatch || searchTerm === '' ? 'block' : 'none';
+                    
+                    if (isMatch && searchTerm !== '') {
+                        component.classList.add('pulse-glow');
+                    } else {
+                        component.classList.remove('pulse-glow');
+                    }
+                });
+            });
+        }
+
+        addSearchFunctionality();
+
+        // Add export functionality
+        function addExportButton() {
+            const exportBtn = document.createElement('button');
+            exportBtn.textContent = 'Export Map';
+            exportBtn.className = 'px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition ml-2';
+            exportBtn.addEventListener('click', function() {
+                // Simple text export of the architecture
+                const architectureText = `
+C++98 Webserver Architecture Map
+================================
+
+Phase 1: Server Initialization
+- ConfigParser: Parses configuration file and validates server settings
+- Server Setup: Creates sockets and configures epoll for event handling  
+- Epoll Event Loop: High-performance I/O event notification mechanism
+
+Phase 2: Connection Handling
+- Accept Connection: Accepts new client connections and adds them to epoll
+- Client Management: Manages client state and buffers incoming data
+
+Phase 3: Request Processing  
+- Request Parser: Parses HTTP request headers and body
+- Route Matching: Finds matching location block for request path
+- Path Resolution: Resolves request path to filesystem location
+
+Phase 4: Response Generation
+- GET Handler: Serves files and directories
+- POST Handler: Handles form data and file uploads
+- DELETE Handler: Removes files and directories
+- CGI Handler: Executes dynamic scripts
+
+Phase 5: Response Delivery
+- Response Builder: Constructs HTTP response with headers and body
+- Error Handling: Generates appropriate error responses
+- Send Response: Delivers response to client and cleans up
+
+Key Features:
+- C++98 compliant implementation
+- Epoll-based high-performance event loop
+- Support for GET, POST, DELETE HTTP methods
+- Multipart file upload handling
+- CGI script execution
+- Virtual host support
+- Nginx-style configuration
+- Comprehensive error handling
+                `;
+                
+                const blob = new Blob([architectureText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'webserver_architecture.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+            
+            document.querySelector('.flex.justify-center.space-x-4').appendChild(exportBtn);
+        }
+
+        addExportButton();
+    </script>
+</body>
+</html>

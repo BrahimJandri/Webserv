@@ -1,7 +1,7 @@
 #include "ConfigParser.hpp"
 
 // Location struct implementation
-ConfigParser::LocationConfig::LocationConfig() : limit_client_body_size(0), autoindex(false) {}
+ConfigParser::LocationConfig::LocationConfig() : autoindex(false) {}
 
 // Listen struct implementation
 ConfigParser::Listen::Listen() : host("0.0.0.0") {}
@@ -298,15 +298,7 @@ void ConfigParser::parseLocation(LocationConfig &location)
         {
             location.return_directive = parseDirectiveValue();
         }
-        else if (directive == "limit_client_body_size")
-        {
-            std::string value = parseDirectiveValue();
-            if (value.empty())
-            {
-                throw std::runtime_error("'limit_client_body_size' directive cannot be empty in location block at line " + intToString(line_number));
-            }
-            location.limit_client_body_size = parseSizeToBytes(value);
-        }
+       
         else
         {
             // Skip unknown directive
@@ -375,6 +367,7 @@ void ConfigParser::parseServer(ServerConfig &server)
             }
             server.root = root_value;
         }
+       
         else if (directive == "error_page")
         {
             std::vector<std::string> values = parseMultipleValues();

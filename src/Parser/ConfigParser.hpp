@@ -19,7 +19,6 @@ public:
         std::vector<std::string> index;
         std::vector<std::string> allowed_methods;
         std::map<std::string, std::string> cgi;
-        size_t limit_client_body_size;
         std::string return_directive;
         bool autoindex;
 

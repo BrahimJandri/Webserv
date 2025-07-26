@@ -461,9 +461,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
     normalize_path(full_path);
 
     // Max body size check
-    size_t max_body_size = (location && location->limit_client_body_size != 0)
-                               ? location->limit_client_body_size
-                               : serverConfig.limit_client_body_size;
+    size_t max_body_size = serverConfig.limit_client_body_size;
 
     if (!req.getBody().empty() && req.getBody().size() > max_body_size)
     {
@@ -522,7 +520,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
         send_error_response(client_fd, 405, "Method Not Allowed", serverConfig);
         return -1;
     }
-    
+
     // Send response
     std::string response_str = response.toString();
     clients[client_fd]->setResponse(response_str);
@@ -535,31 +533,6 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
     return 0;
 }
 
-IOStatus safeRead(int fd, char *buf, size_t size, ssize_t &bytes_read)
-{
-    bytes_read = read(fd, buf, size);
-    if (bytes_read > 0)
-        return IO_OK;
-    if (bytes_read == 0)
-        return IO_CLOSED;
-
-    int err = errno; // snapshot before doing anything else
-    if (err == EAGAIN || err == EWOULDBLOCK)
-        return IO_WOULDBLOCK;
-    return IO_ERROR;
-}
-
-IOStatus safeWrite(int fd, const char *buf, size_t size, ssize_t &bytes_written)
-{
-    bytes_written = write(fd, buf, size);
-    if (bytes_written >= 0)
-        return IO_OK;
-
-    int err = errno;
-    if (err == EAGAIN || err == EWOULDBLOCK)
-        return IO_WOULDBLOCK;
-    return IO_ERROR;
-}
 
 void Server::handleClientRead(int client_fd)
 {
@@ -572,43 +545,49 @@ void Server::handleClientRead(int client_fd)
     char buffer[4096];
     ssize_t bytes_read;
 
+    // Loop to read all available data (Edge-triggered mode: EPOLLET)
     while (true)
     {
-        IOStatus status = safeRead(client_fd, buffer, sizeof(buffer), bytes_read);
+        bytes_read = read(client_fd, buffer, sizeof(buffer));
 
-        if (status == IO_CLOSED)
+        if (bytes_read > 0)
         {
+            clients[client_fd]->appendToBuffer(std::string(buffer, bytes_read));
+        }
+        else if (bytes_read == 0)
+        {
+            // Client disconnected
             closeClientConnection(client_fd);
             return;
         }
-        else if (status == IO_ERROR)
+        else
         {
-            closeClientConnection(client_fd);
-            return;
-        }
-        else if (status == IO_WOULDBLOCK)
-        {
+            // read() failed
+            // We're NOT allowed to check errno → assume it's either EAGAIN or fatal
+            // We MUST exit the loop without closing the connection blindly
             break;
         }
-
-        clients[client_fd]->appendToBuffer(std::string(buffer, bytes_read));
     }
 
+    // Process request if we have a full one
     if (clients[client_fd]->processRequest())
     {
         const requestParser &request = clients[client_fd]->getRequest();
+
         if (prepareResponse(request, client_fd) == -1)
         {
             closeClientConnection(client_fd);
             return;
         }
 
+        // Switch to write mode (EPOLLOUT)
         struct epoll_event event;
         event.events = EPOLLOUT | EPOLLET;
         event.data.fd = client_fd;
         epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client_fd, &event);
     }
 }
+
 
 void Server::handleClientWrite(int client_fd)
 {
@@ -619,30 +598,24 @@ void Server::handleClientWrite(int client_fd)
     }
 
     Client *client = clients[client_fd];
+    const std::string &response = client->getResponse();
 
-    if (!client->isResponseReady())
+    ssize_t bytes_sent = write(client_fd, response.c_str(), response.size());
+
+    if (bytes_sent >= 0)
     {
-        // Should not happen, but just in case
-        // client->prepareResponse();
+        // For simplicity: close connection after sending full response
+        // In real server, you would handle partial writes and keep connection if Keep-Alive
+        closeClientConnection(client_fd);
     }
-
-    std::string response = client->getResponse();
-    ssize_t bytes_sent = write(client_fd, response.c_str(), response.length());
-
-    if (bytes_sent == -1)
+    else
     {
-        if (errno != EAGAIN && errno != EWOULDBLOCK)
-        {
-            perror("write");
-            closeClientConnection(client_fd);
-        }
-        return;
+        // write() failed — you're not allowed to check errno
+        // Assume failure is permanent, close connection
+        closeClientConnection(client_fd);
     }
-
-    // For simplicity, we'll close the connection after sending the response
-    // In a real HTTP server, you might want to check for Keep-Alive header
-    closeClientConnection(client_fd);
 }
+
 
 void Server::handleConnections()
 {
@@ -766,7 +739,7 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
     std::map<int, std::string>::const_iterator it = serverConfig.error_pages.find(status_code);
     if (it != serverConfig.error_pages.end())
     {
-        error_page_path = serverConfig.root + it->second;
+        error_page_path = serverConfig.locations.empty() ? it->second : serverConfig.locations[0].root + it->second;
     }
     else
     {
