@@ -4,16 +4,16 @@
 #include "Server/Server.hpp"
 
 void printBanner() {
-    Utils::log(" █     █░▓█████  ▄▄▄▄     ██████ ▓█████  ██▀███   ██▒   █▓", AnsiColor::GREEN);
-    Utils::log("▓█░ █ ░█░▓█   ▀ ▓█████▄ ▒██    ▒ ▓█   ▀ ▓██ ▒ ██▒▓██░   █▒", AnsiColor::GREEN);
-    Utils::log("▒█░ █ ░█ ▒███   ▒██▒ ▄██░ ▓██▄   ▒███   ▓██ ░▄█ ▒ ▓██  █▒░", AnsiColor::GREEN);
-    Utils::log("░█░ █ ░█ ▒▓█  ▄ ▒██░█▀    ▒   ██▒▒▓█  ▄ ▒██▀▀█▄    ▒██ █░░", AnsiColor::GREEN);
-    Utils::log("░░██▒██▓ ░▒████▒░▓█  ▀█▓▒██████▒▒░▒████▒░██▓ ▒██▒   ▒▀█░  ", AnsiColor::GREEN);
-    Utils::log("░ ▓░▒ ▒  ░░ ▒░ ░░▒▓███▀▒▒ ▒▓▒ ▒ ░░░ ▒░ ░░ ▒▓ ░▒▓░   ░ ▐░  ", AnsiColor::GREEN);
-    Utils::log("  ▒ ░ ░   ░ ░  ░▒░▒   ░ ░ ░▒  ░ ░ ░ ░  ░  ░▒ ░ ▒░   ░ ░░  ", AnsiColor::GREEN);
-    Utils::log("  ░   ░     ░    ░    ░ ░  ░  ░     ░     ░░   ░      ░░  ", AnsiColor::GREEN);
-    Utils::log("    ░       ░  ░ ░            ░     ░  ░   ░           ░  ", AnsiColor::GREEN);
-    Utils::log("                      ░                               ░   ", AnsiColor::GREEN);
+    Utils::log(" █     █░▓█████  ▄▄▄▄     ██████ ▓█████  ██▀███   ██▒   █▓", AnsiColor::BOLD_GREEN);
+    Utils::log("▓█░ █ ░█░▓█   ▀ ▓█████▄ ▒██    ▒ ▓█   ▀ ▓██ ▒ ██▒▓██░   █▒", AnsiColor::BOLD_GREEN);
+    Utils::log("▒█░ █ ░█ ▒███   ▒██▒ ▄██░ ▓██▄   ▒███   ▓██ ░▄█ ▒ ▓██  █▒░", AnsiColor::BOLD_GREEN);
+    Utils::log("░█░ █ ░█ ▒▓█  ▄ ▒██░█▀    ▒   ██▒▒▓█  ▄ ▒██▀▀█▄    ▒██ █░░", AnsiColor::BOLD_GREEN);
+    Utils::log("░░██▒██▓ ░▒████▒░▓█  ▀█▓▒██████▒▒░▒████▒░██▓ ▒██▒   ▒▀█░  ", AnsiColor::BOLD_GREEN);
+    Utils::log("░ ▓░▒ ▒  ░░ ▒░ ░░▒▓███▀▒▒ ▒▓▒ ▒ ░░░ ▒░ ░░ ▒▓ ░▒▓░   ░ ▐░  ", AnsiColor::BOLD_GREEN);
+    Utils::log("  ▒ ░ ░   ░ ░  ░▒░▒   ░ ░ ░▒  ░ ░ ░ ░  ░  ░▒ ░ ▒░   ░ ░░  ", AnsiColor::BOLD_GREEN);
+    Utils::log("  ░   ░     ░    ░    ░ ░  ░  ░     ░     ░░   ░      ░░  ", AnsiColor::BOLD_GREEN);
+    Utils::log("    ░       ░  ░ ░            ░     ░  ░   ░           ░  ", AnsiColor::BOLD_GREEN);
+    Utils::log("                      ░                               ░   ", AnsiColor::BOLD_GREEN);
 }
 
 int start_server(const std::string &config_path)
@@ -27,11 +27,11 @@ int start_server(const std::string &config_path)
     }
     catch (const std::runtime_error &e)
     {
-        Utils::log("Error parsing configuration: " + std::string(e.what()), AnsiColor::RED);
+        Utils::log("Error parsing configuration: " + std::string(e.what()), AnsiColor::BOLD_RED);
         return 1;
     }
     size_t serverCount = parser.getServerCount();
-    Utils::log("Found " + Utils::intToString(serverCount) + " server configurations", AnsiColor::CYAN);
+    Utils::log("Found " + Utils::intToString(serverCount) + " server configurations", AnsiColor::BOLD_CYAN);
     parser.printConfig();
     Server server;
     server.setupServers(parser); // 👈 create sockets + register to epoll

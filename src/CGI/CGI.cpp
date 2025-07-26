@@ -257,7 +257,6 @@ std::string CGIHandler::handleCGI(const std::string &scriptPath, const requestPa
 
                     if (key == "Set-Cookie")
                     {
-                        Utils::log("CGI script set cookie: " + value, AnsiColor::GREEN);
                         response.addHeader("Set-Cookie", value);
                     }
                     else

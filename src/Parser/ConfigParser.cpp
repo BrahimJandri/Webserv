@@ -9,7 +9,7 @@ ConfigParser::Listen::Listen() : host("0.0.0.0") {}
 ConfigParser::Listen::Listen(const std::string &h, const std::string &p) : host(h), port(p) {}
 
 // Server struct implementation
-ConfigParser::ServerConfig::ServerConfig() : limit_client_body_size(0), autoindex(false) {}
+ConfigParser::ServerConfig::ServerConfig() : limit_client_body_size(0){}
 
 // ConfigParser implementation
 ConfigParser::ConfigParser() : pos(0), line_number(1) {}
@@ -358,16 +358,7 @@ void ConfigParser::parseServer(ServerConfig &server)
         {
             server.server_name = parseDirectiveValue();
         }
-        else if (directive == "root")
-        {
-            std::string root_value = parseDirectiveValue();
-            if (root_value.empty())
-            {
-                throw std::runtime_error("'root' directive cannot be empty at line " + intToString(line_number));
-            }
-            server.root = root_value;
-        }
-       
+
         else if (directive == "error_page")
         {
             std::vector<std::string> values = parseMultipleValues();
@@ -408,11 +399,6 @@ void ConfigParser::parseServer(ServerConfig &server)
                 throw std::runtime_error("'limit_client_body_size' directive cannot be empty at line " + intToString(line_number));
             }
             server.limit_client_body_size = parseSizeToBytes(value);
-        }
-        else if (directive == "autoindex")
-        {
-            std::string value = parseDirectiveValue();
-            server.autoindex = (value == "on");
         }
         else if (directive == "location")
         {
@@ -528,7 +514,7 @@ void ConfigParser::validateRequiredDirectives()
         }
 
         // Check if server has a root directive or all locations have root directives
-        bool server_has_root = !server.root.empty();
+        bool server_has_root = !server.locations.empty() && !server.locations[0].root.empty();
         bool all_locations_have_root = true;
 
         // If server has no root directive, check if all locations have root directives
@@ -612,15 +598,15 @@ void ConfigParser::printConfig()
 {
     for (size_t i = 0; i < servers.size(); i++)
     {
-        std::cout << AnsiColor::BOLD_BLUE << "Server " << i + 1 << ":" << AnsiColor::RESET << std::endl;
+        std::cout << AnsiColor::BOLD_BLUE << "Server " << i + 1 << ":" << AnsiColor::BOLD_MAGENTA << std::endl;
 
-        std::cout << AnsiColor::BOLD_CYAN << "  Server name: " << AnsiColor::RESET << servers[i].server_name << std::endl;
+        std::cout << AnsiColor::BOLD_CYAN << "  Server name: " << AnsiColor::BOLD_MAGENTA<< servers[i].server_name << std::endl;
 
-        std::cout << AnsiColor::BOLD_CYAN << "  Listen: " << AnsiColor::RESET;
+        std::cout << AnsiColor::BOLD_CYAN << "  Listen: " << AnsiColor::BOLD_GREEN;
         for (size_t j = 0; j < servers[i].listen.size(); j++)
         {
             const Listen &listen_info = servers[i].listen[j];
-            std::cout << AnsiColor::CYAN
+            std::cout << AnsiColor::BOLD_GREEN
                       << "http://" << listen_info.host << ":" << listen_info.port
                       << AnsiColor::RESET;
             if (j < servers[i].listen.size() - 1)

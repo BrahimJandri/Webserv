@@ -590,7 +590,6 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
 
         htmlBody += "<a href=\"/\">Back to Home</a>\n</body>\n</html>";
         response.setBody(htmlBody);
-        std::cout << "Multipart form data processed successfully." << std::endl;
         return response;
     }
     else
@@ -626,6 +625,7 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
                                                                                  "<a href=\"/\">Back to Home</a>\n</body>\n</html>";
 
         response.setBody(htmlBody);
+
         return response;
     }
 }

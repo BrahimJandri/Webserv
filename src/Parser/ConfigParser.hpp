@@ -8,6 +8,7 @@
 #include <set>
 #include <algorithm>
 #include "../Utils/AnsiColor.hpp"
+#include "../Utils/Logger.hpp"
 
 class ConfigParser
 {
@@ -38,10 +39,8 @@ public:
     {
         std::vector<Listen> listen;
         std::string server_name;
-        std::string root;
         std::map<int, std::string> error_pages;
         size_t limit_client_body_size;
-        bool autoindex;
         std::vector<LocationConfig> locations;
 
         ServerConfig();

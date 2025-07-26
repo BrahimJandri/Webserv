@@ -85,7 +85,7 @@ void Server::setupServers(const ConfigParser &parser)
             if (createdHostPorts.count(hostPortKey))
                 continue; // Skip already created sockets
 
-            Utils::log("Setting up server on " + host + ":" + port, AnsiColor::YELLOW);
+            Utils::log("Setting up server on " + host + ":" + port, AnsiColor::BOLD_YELLOW);
 
             int server_fd = create_server_socket(host, std::atoi(port.c_str()));
             if (server_fd == -1)
@@ -176,7 +176,7 @@ void Server::acceptNewConnection(int server_fd)
     clients[client_fd] = new Client(client_fd);
     clientToServergMap[client_fd] = serverConfigMap[server_fd][0];
 
-    Utils::log("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" + to_string_c98(ntohs(client_addr.sin_port)) + " (fd: " + to_string_c98(client_fd) + ")", AnsiColor::GREEN);
+    Utils::log("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" + to_string_c98(ntohs(client_addr.sin_port)) + " (fd: " + to_string_c98(client_fd) + ")", AnsiColor::BOLD_GREEN);
 }
 
 void Server::closeClientConnection(int client_fd)
@@ -201,7 +201,7 @@ void Server::closeClientConnection(int client_fd)
     if (close(client_fd) == -1)
         perror("close");
 
-    Utils::log("Closed connection for client fd: " + to_string_c98(client_fd), AnsiColor::RED);
+    Utils::log("Closed connection for client fd: " + to_string_c98(client_fd), AnsiColor::BOLD_RED);
 }
 
 bool isHexDigit(char c)
@@ -445,7 +445,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
     }
 
     // Determine root
-    std::string root = (location && !location->root.empty()) ? location->root : serverConfig.root;
+    std::string root = location ? location->root : serverConfig.locations[0].root;
     if (root.empty())
     {
         send_error_response(client_fd, 500, "Root not specified", serverConfig);
@@ -505,7 +505,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
 
     // Build response
     Response response;
-    bool autoindex = location ? location->autoindex : serverConfig.autoindex;
+    bool autoindex = location ? location->autoindex : false;
     if (method == "GET")
     {
         response = Response::buildGetResponse(req, full_path, autoindex, client_fd, serverConfig);
@@ -526,7 +526,8 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
 
     // Send response
     std::string response_str = response.toString();
-    Utils::log("Sending response to client fd: " + to_string_c98(client_fd), AnsiColor::GREEN);
+    Utils::log("Sending response to client fd: " + to_string_c98(client_fd), AnsiColor::BOLD_BLUE);
+    Utils::log("Method: " + req.getMethod() + ", Path: " + req.getPath() + ", Status Code: " + to_string_c98(response.getStatusCode()), AnsiColor::BOLD_YELLOW);
     clients[client_fd]->setResponse(response_str);
     if (send(client_fd, response_str.c_str(), response_str.length(), 0) == -1)
     {
@@ -621,7 +622,7 @@ void Server::handleClientWrite(int client_fd)
 void Server::handleConnections()
 {
     signal(SIGINT, sighandler);
-    signal(SIGTERM, sighandler);
+    signal(SIGQUIT, sighandler);
 
     struct epoll_event events[MAX_EVENTS];
 
@@ -664,12 +665,22 @@ void Server::handleConnections()
 
 void Server::Cleanup()
 {
+    // Close and delete all client sockets
     for (std::map<int, Client *>::iterator iter = clients.begin(); iter != clients.end(); ++iter)
     {
-        delete iter->second;
+        close(iter->first);  // Close client socket
+        delete iter->second; // Delete Client object
     }
     clients.clear();
+
+    // Close all server listening sockets (set<int>)
+    for (std::set<int>::iterator it = server_fds.begin(); it != server_fds.end(); ++it)
+    {
+        close(*it);
+    }
     server_fds.clear();
+
+    // Clear config-related structures
     serverConfigMap.clear();
     clientToServergMap.clear();
 }
