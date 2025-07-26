@@ -394,11 +394,18 @@ void ConfigParser::parseServer(ServerConfig &server)
         else if (directive == "limit_client_body_size")
         {
             std::string value = parseDirectiveValue();
-            if (value.empty())
+            if (value.empty() || value == "0")
             {
                 throw std::runtime_error("'limit_client_body_size' directive cannot be empty at line " + intToString(line_number));
             }
-            server.limit_client_body_size = parseSizeToBytes(value);
+            try 
+            {
+                server.limit_client_body_size = parseSizeToBytes(value);
+            }
+            catch (const std::invalid_argument &e)
+            {
+                throw std::runtime_error("Invalid value for 'limit_client_body_size': " + value + " at line " + intToString(line_number));
+            }
         }
         else if (directive == "location")
         {
