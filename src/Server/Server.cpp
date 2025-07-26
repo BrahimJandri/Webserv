@@ -808,7 +808,7 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
                         "</title></head><body><h1>Error " + to_string_c98(status_code) + ": " +
                         status_text + "</h1><p>" + message + "</p></body></html>";
     }
-
+    // Send HTTP response
     send_http_headers(client_fd, "HTTP/1.1 " + to_string_c98(status_code) + " " + status_text,
                       "text/html", response_body.length());
     write(client_fd, response_body.c_str(), response_body.length());

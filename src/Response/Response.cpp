@@ -625,7 +625,6 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
                                                                                  "<a href=\"/\">Back to Home</a>\n</body>\n</html>";
 
         response.setBody(htmlBody);
-
         return response;
     }
 }
