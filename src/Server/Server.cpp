@@ -423,7 +423,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
     if (queryPos != std::string::npos)
         path = path.substr(0, queryPos);
 
-    printRequest(req);
+    // printRequest(req);
     const ConfigParser::LocationConfig *location = findMatchingLocation(serverConfig.locations, path);
 
     // Handle redirection
@@ -526,6 +526,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
 
     // Send response
     std::string response_str = response.toString();
+    Utils::log("Sending response to client fd: " + to_string_c98(client_fd), AnsiColor::GREEN);
     clients[client_fd]->setResponse(response_str);
     if (send(client_fd, response_str.c_str(), response_str.length(), 0) == -1)
     {

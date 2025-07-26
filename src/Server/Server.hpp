@@ -12,13 +12,6 @@
 #include "../Utils/AnsiColor.hpp"
 #include "../Utils/Logger.hpp"
 
-enum IOStatus
-{
-    IO_OK,
-    IO_CLOSED,
-    IO_WOULDBLOCK,
-    IO_ERROR
-};
 
 class Server
 {
