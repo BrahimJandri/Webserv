@@ -419,6 +419,9 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
 {
     ConfigParser::ServerConfig serverConfig = clientToServergMap[client_fd];
     std::string path = req.getPath();
+    size_t queryPos = path.find('?');
+    if (queryPos != std::string::npos)
+        path = path.substr(0, queryPos);
 
     printRequest(req);
     const ConfigParser::LocationConfig *location = findMatchingLocation(serverConfig.locations, path);
@@ -533,7 +536,6 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
     return 0;
 }
 
-
 void Server::handleClientRead(int client_fd)
 {
     if (clients.find(client_fd) == clients.end())
@@ -588,7 +590,6 @@ void Server::handleClientRead(int client_fd)
     }
 }
 
-
 void Server::handleClientWrite(int client_fd)
 {
     if (clients.find(client_fd) == clients.end())
@@ -615,7 +616,6 @@ void Server::handleClientWrite(int client_fd)
         closeClientConnection(client_fd);
     }
 }
-
 
 void Server::handleConnections()
 {
