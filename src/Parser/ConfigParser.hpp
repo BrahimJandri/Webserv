@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <cctype>
 #include <map>
 #include <set>
 #include <algorithm>
@@ -77,4 +78,12 @@ public:
     size_t parseSizeToBytes(const std::string &input);
 
     size_t getServerCount() const;
+
+    void   printPos();
+
+
+    //listen
+    bool    isValidIPv4(const std::string& ip);
+    bool    isDigitString(const std::string& str);
+    bool    isValidPort(const std::string& port);
 };
