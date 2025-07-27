@@ -1,5 +1,8 @@
 #include "ConfigParser.hpp"
 
+// Utils::log("HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEERE", AnsiColor::BOLD_YELLOW);
+
+
 // Location struct implementation
 ConfigParser::LocationConfig::LocationConfig() : autoindex(false) {}
 
@@ -52,7 +55,7 @@ std::string ConfigParser::parseToken()
     skipComments();
     if (pos >= content.length())
     {
-        return "";
+        return "ERROR";
     }
 
     std::string token;
@@ -578,7 +581,7 @@ void ConfigParser::parseString(const std::string &config_content)
 void ConfigParser::parse()
 {
     std::string directive;
-    while ((directive = parseToken()) != "")
+    while ((directive = parseToken()) != "ERROR")
     {
         if (directive == "server")
         {
@@ -589,10 +592,10 @@ void ConfigParser::parse()
         else
         {
             throw std::runtime_error("Unknown directive: " + directive +
-                                     " at line " + intToString(line_number));
-        }
+                " at line " + intToString(line_number));
+            }
     }
-
+    std::cout << "(" << directive << ")" << std::endl;
     validatePorts();
     validateRequiredDirectives();
 }

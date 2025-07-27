@@ -4,16 +4,16 @@
 #include "Server/Server.hpp"
 
 void printBanner() {
-    Utils::log(" █     █░▓█████  ▄▄▄▄     ██████ ▓█████  ██▀███   ██▒   █▓", AnsiColor::BOLD_GREEN);
-    Utils::log("▓█░ █ ░█░▓█   ▀ ▓█████▄ ▒██    ▒ ▓█   ▀ ▓██ ▒ ██▒▓██░   █▒", AnsiColor::BOLD_GREEN);
-    Utils::log("▒█░ █ ░█ ▒███   ▒██▒ ▄██░ ▓██▄   ▒███   ▓██ ░▄█ ▒ ▓██  █▒░", AnsiColor::BOLD_GREEN);
-    Utils::log("░█░ █ ░█ ▒▓█  ▄ ▒██░█▀    ▒   ██▒▒▓█  ▄ ▒██▀▀█▄    ▒██ █░░", AnsiColor::BOLD_GREEN);
-    Utils::log("░░██▒██▓ ░▒████▒░▓█  ▀█▓▒██████▒▒░▒████▒░██▓ ▒██▒   ▒▀█░  ", AnsiColor::BOLD_GREEN);
-    Utils::log("░ ▓░▒ ▒  ░░ ▒░ ░░▒▓███▀▒▒ ▒▓▒ ▒ ░░░ ▒░ ░░ ▒▓ ░▒▓░   ░ ▐░  ", AnsiColor::BOLD_GREEN);
-    Utils::log("  ▒ ░ ░   ░ ░  ░▒░▒   ░ ░ ░▒  ░ ░ ░ ░  ░  ░▒ ░ ▒░   ░ ░░  ", AnsiColor::BOLD_GREEN);
-    Utils::log("  ░   ░     ░    ░    ░ ░  ░  ░     ░     ░░   ░      ░░  ", AnsiColor::BOLD_GREEN);
-    Utils::log("    ░       ░  ░ ░            ░     ░  ░   ░           ░  ", AnsiColor::BOLD_GREEN);
-    Utils::log("                      ░                               ░   ", AnsiColor::BOLD_GREEN);
+    Utils::log(" █     █░▓█████  ▄▄▄▄     ██████ ▓█████  ██▀███   ██▒   █▓", AnsiColor::RED);
+    Utils::log("▓█░ █ ░█░▓█   ▀ ▓█████▄ ▒██    ▒ ▓█   ▀ ▓██ ▒ ██▒▓██░   █▒", AnsiColor::RED);
+    Utils::log("▒█░ █ ░█ ▒███   ▒██▒ ▄██░ ▓██▄   ▒███   ▓██ ░▄█ ▒ ▓██  █▒░", AnsiColor::RED);
+    Utils::log("░█░ █ ░█ ▒▓█  ▄ ▒██░█▀    ▒   ██▒▒▓█  ▄ ▒██▀▀█▄    ▒██ █░░", AnsiColor::RED);
+    Utils::log("░░██▒██▓ ░▒████▒░▓█  ▀█▓▒██████▒▒░▒████▒░██▓ ▒██▒   ▒▀█░  ", AnsiColor::RED);
+    Utils::log("░ ▓░▒ ▒  ░░ ▒░ ░░▒▓███▀▒▒ ▒▓▒ ▒ ░░░ ▒░ ░░ ▒▓ ░▒▓░   ░ ▐░  ", AnsiColor::RED);
+    Utils::log("  ▒ ░ ░   ░ ░  ░▒░▒   ░ ░ ░▒  ░ ░ ░ ░  ░  ░▒ ░ ▒░   ░ ░░  ", AnsiColor::RED);
+    Utils::log("  ░   ░     ░    ░    ░ ░  ░  ░     ░     ░░   ░      ░░  ", AnsiColor::RED);
+    Utils::log("    ░       ░  ░ ░            ░     ░  ░   ░           ░  ", AnsiColor::RED);
+    Utils::log("                      ░                               ░   ", AnsiColor::RED);
 }
 
 int start_server(const std::string &config_path)
