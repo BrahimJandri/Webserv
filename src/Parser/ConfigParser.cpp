@@ -296,6 +296,22 @@ void ConfigParser::parseLocation(LocationConfig &location)
         {
             std::string ext = parseToken();
             std::string interpreter = parseDirectiveValue();
+            if (ext.empty() || interpreter.empty())
+            {
+                throw std::runtime_error("'cgi_map' directive requires both extension and interpreter at line " + intToString(line_number));
+            }
+            if (ext[0] != '.' || ext[1] == '.')
+            {
+                throw std::runtime_error("CGI extension must start with '.' at line " + intToString(line_number));
+            }
+            if (ext.length() < 2)
+            {
+                throw std::runtime_error("CGI extension must be at least two characters long at line " + intToString(line_number));
+            }
+            if (location.cgi.find(ext) != location.cgi.end())
+            {
+                throw std::runtime_error("Duplicate CGI mapping for extension '" + ext + "' at line " + intToString(line_number));
+            }
             location.cgi[ext] = interpreter;
         }
         else if (directive == "return")
