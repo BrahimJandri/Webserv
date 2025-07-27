@@ -111,9 +111,10 @@ std::string ConfigParser::parseDirectiveValue()
 {
     std::string value;
     std::string token;
-
+    // printPos();Rachid for debuging
     while ((token = parseToken()) != "")
     {
+        std::cout << token << std::endl;//For deubging
         // Check if this token looks like a directive keyword (this would indicate missing semicolon)
         if (value.empty() == false && (token == "server_name" || token == "listen" || token == "error_page" ||
                                        token == "limit_client_body_size" || token == "autoindex" || token == "location" ||
@@ -447,16 +448,91 @@ ConfigParser::Listen ConfigParser::parseListen(const std::string &listen_value)
         // Format: host:port
         std::string host = listen_value.substr(0, colon_pos);
         std::string port = listen_value.substr(colon_pos + 1);
+
+        if(host.empty())
+            throw std::runtime_error("Invalid listen value, missed host before colon");
+
+        if(!isValidPort(port))
+            throw std::runtime_error("Invalid Port number in listen value: " + port); 
+
+        if(host == "localhost")
+            return Listen("0.0.0.0", port);
+
+        if(!isValidIPv4(host))
+            throw std::runtime_error("Invalid IP address format in listen value: " + host); 
+
         return Listen(host, port);
     }
     else
     {
-        // Format: port only, use default host
+        if(!isValidPort(listen_value))
+            throw std::runtime_error("Invalid Port number in listen value: " + listen_value); 
+            
         return Listen("0.0.0.0", listen_value);
     }
 }
 
-std::string ConfigParser::intToString(int value)
+bool    ConfigParser::isValidPort(const std::string& port)
+{
+    if(!isDigitString(port))
+        return false;
+
+    int num = atoi(port.c_str());
+    if(num < 1 || num > 65535)
+        return false;
+
+    return true;
+}
+
+bool    ConfigParser::isValidIPv4(const std::string& ip)
+{
+    size_t start = 0;
+    int bytes = 0;
+
+    // if(ip == "localhost")// still thinking where to locate this
+    //     return true;
+
+    while(start < ip.size() && bytes < 4)
+    {
+        size_t end = ip.find(".");
+
+        if(end == std::string::npos)
+            end = ip.size();
+        std::string byte = ip.substr(start, end - start);
+
+        if(byte.empty())
+            return false;
+        if(!isDigitString(byte))
+            return false;
+        
+        int num = atoi(byte.c_str());
+        if(num < 0 || num > 255)
+            return false;
+            
+        bytes++;
+
+        start = end + 1;
+    }
+    return (bytes == 4 && start > ip.size());
+}
+
+
+bool ConfigParser::isDigitString(const std::string& str)
+{
+
+    for(size_t i = 0; i < str.size(); i++)
+    {
+        if(!isdigit(str[i]))
+            return false;
+    }
+    return true;
+}
+
+
+
+
+
+    std::string ConfigParser::intToString(int value)
 {
     std::ostringstream oss;
     oss << value;
@@ -639,4 +715,11 @@ size_t ConfigParser::getListenCount() const
         ListenCount += servers[i].listen.size();
     }
     return ListenCount;
+}
+
+void    ConfigParser::printPos(){
+
+    std::cout << pos << "---> ";
+    std::cout << line_number << std::endl;
+
 }
