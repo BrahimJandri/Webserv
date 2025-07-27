@@ -529,7 +529,6 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
 
     // Send response
     std::string response_str = response.toString();
-    Utils::log("Sending response to client fd: " + to_string_c98(client_fd), AnsiColor::BOLD_BLUE);
     Utils::log("Method: " + req.getMethod() + ", Path: " + req.getPath() + ", Status Code: " + to_string_c98(response.getStatusCode()), AnsiColor::BOLD_YELLOW);
     clients[client_fd]->setResponse(response_str);
     return 0;
@@ -601,6 +600,7 @@ void Server::handleClientWrite(int client_fd)
     const std::string &response = client->getResponse();
 
     write(client_fd, response.c_str(), response.size()); // Send response
+    Utils::log("Sending response to client fd: " + to_string_c98(client_fd), AnsiColor::BOLD_BLUE);
     closeClientConnection(client_fd);
 }
 
