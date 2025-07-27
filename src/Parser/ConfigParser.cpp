@@ -351,6 +351,7 @@ void ConfigParser::parseServer(ServerConfig &server)
                                  intToString(line_number));
     }
 
+
     std::string directive;
     while (true)
     {
@@ -380,9 +381,12 @@ void ConfigParser::parseServer(ServerConfig &server)
         }
         else if (directive == "server_name")
         {
+            if(!server.server_name.empty())
+            {
+                throw std::runtime_error("Duplicate 'server_name' directive in server block");
+            }
             server.server_name = parseDirectiveValue();
         }
-
         else if (directive == "error_page")
         {
             std::vector<std::string> values = parseMultipleValues();
@@ -450,8 +454,9 @@ void ConfigParser::parseServer(ServerConfig &server)
         }
         else
         {
-            // Skip unknown directive
-            parseDirectiveValue();
+            // Skip unknown 
+            throw std::runtime_error("Unknown Directive");
+                parseDirectiveValue();
         }
 
         if (!expectSemicolon())
