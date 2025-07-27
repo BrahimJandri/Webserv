@@ -448,7 +448,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
     }
 
     // Determine root
-    std::string root = location->root;
+    std::string root = location ? location->root : serverConfig.root;
     if (root.empty())
     {
         send_error_response(client_fd, 500, "Root not specified", serverConfig);

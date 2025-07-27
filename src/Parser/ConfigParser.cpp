@@ -114,7 +114,7 @@ std::string ConfigParser::parseDirectiveValue()
     while ((token = parseToken()) != "")
     {
         // std::cout << token << std::endl; // For deubging
-    
+
         // Check if this token looks like a directive keyword (this would indicate missing semicolon)
         if (value.empty() == false && (token == "server_name" || token == "listen" || token == "error_page" ||
                                        token == "limit_client_body_size" || token == "autoindex" || token == "location" ||
@@ -431,6 +431,15 @@ void ConfigParser::parseServer(ServerConfig &server)
                 throw std::runtime_error("Invalid value for 'limit_client_body_size': " + value + " at line " + intToString(line_number));
             }
         }
+        else if (directive == "root")
+        {
+            std::string root_value = parseDirectiveValue();
+            if (root_value.empty())
+            {
+                throw std::runtime_error("'root' directive cannot be empty in server block at line " + intToString(line_number));
+            }
+            server.root = root_value;
+        }
         else if (directive == "location")
         {
             LocationConfig location;
@@ -450,6 +459,11 @@ void ConfigParser::parseServer(ServerConfig &server)
             throw std::runtime_error("Expected ';' after directive '" + directive +
                                      "' at line " + intToString(line_number));
         }
+    }
+    if (server.root.empty())
+    {
+        throw std::runtime_error("Missing required 'root' directive in server block at line " +
+                                 intToString(line_number));
     }
 
     if (parseSpecialChar() != '}')
