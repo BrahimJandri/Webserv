@@ -554,48 +554,30 @@ std::string ConfigParser::intToString(int value)
 
 void ConfigParser::validatePorts()
 {
-    std::map<std::string, std::string> port_to_server_name; // port_key -> server_name
+    std::set<std::string> global_ports; // track all host:port across all servers
 
     for (size_t i = 0; i < servers.size(); i++)
     {
-        std::set<std::string> server_ports; // Track ports within this server
+        std::set<std::string> server_ports; // track ports inside this server
 
         for (size_t j = 0; j < servers[i].listen.size(); j++)
         {
             const Listen &listen_info = servers[i].listen[j];
             std::string port_key = listen_info.host + ":" + listen_info.port;
 
-            // Check for duplicates within the same server
+            // Check duplicates inside the same server
             if (server_ports.find(port_key) != server_ports.end())
             {
-                throw std::runtime_error("Duplicate port found in same server: " + port_key);
+                throw std::runtime_error("Duplicate port found in the same server: " + port_key);
             }
             server_ports.insert(port_key);
 
-            // Check for duplicates across different servers
-            if (port_to_server_name.find(port_key) != port_to_server_name.end())
+            // Check duplicates across all servers (regardless of server_name)
+            if (global_ports.find(port_key) != global_ports.end())
             {
-                std::string existing_server_name = port_to_server_name[port_key];
-                std::string current_server_name = servers[i].server_name;
-
-                // If both servers have the same server_name (or both are empty), it's an error
-                if (existing_server_name == current_server_name)
-                {
-                    if (current_server_name.empty())
-                    {
-                        throw std::runtime_error("Duplicate port " + port_key + " found in servers with no server_name");
-                    }
-                    else
-                    {
-                        throw std::runtime_error("Duplicate port " + port_key + " found in servers with same server_name: " + current_server_name);
-                    }
-                }
-                // If server_names are different, it's allowed (no error)
+                throw std::runtime_error("Duplicate port found across different servers: " + port_key);
             }
-            else
-            {
-                port_to_server_name[port_key] = servers[i].server_name;
-            }
+            global_ports.insert(port_key);
         }
     }
 }
