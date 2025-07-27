@@ -2,7 +2,6 @@
 
 // Utils::log("HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEERE", AnsiColor::BOLD_YELLOW);
 
-
 // Location struct implementation
 ConfigParser::LocationConfig::LocationConfig() : autoindex(false) {}
 
@@ -12,7 +11,7 @@ ConfigParser::Listen::Listen() : host("0.0.0.0") {}
 ConfigParser::Listen::Listen(const std::string &h, const std::string &p) : host(h), port(p) {}
 
 // Server struct implementation
-ConfigParser::ServerConfig::ServerConfig() : limit_client_body_size(0){}
+ConfigParser::ServerConfig::ServerConfig() : limit_client_body_size(0) {}
 
 // ConfigParser implementation
 ConfigParser::ConfigParser() : pos(0), line_number(1) {}
@@ -114,7 +113,7 @@ std::string ConfigParser::parseDirectiveValue()
     // printPos();Rachid for debuging
     while ((token = parseToken()) != "")
     {
-        std::cout << token << std::endl;//For deubging
+        std::cout << token << std::endl; // For deubging
         // Check if this token looks like a directive keyword (this would indicate missing semicolon)
         if (value.empty() == false && (token == "server_name" || token == "listen" || token == "error_page" ||
                                        token == "limit_client_body_size" || token == "autoindex" || token == "location" ||
@@ -313,12 +312,16 @@ void ConfigParser::parseLocation(LocationConfig &location)
                 throw std::runtime_error("Duplicate CGI mapping for extension '" + ext + "' at line " + intToString(line_number));
             }
             location.cgi[ext] = interpreter;
+            if (access(interpreter.c_str(), X_OK) != 0)
+            {
+                throw std::runtime_error("CGI interpreter path is invalid or not executable: '" + interpreter +
+                                         "' at line " + intToString(line_number));
+            }
         }
         else if (directive == "return")
         {
             location.return_directive = parseDirectiveValue();
         }
-       
         else
         {
             // Skip unknown directive
@@ -418,7 +421,7 @@ void ConfigParser::parseServer(ServerConfig &server)
             {
                 throw std::runtime_error("'limit_client_body_size' directive cannot be empty at line " + intToString(line_number));
             }
-            try 
+            try
             {
                 server.limit_client_body_size = parseSizeToBytes(value);
             }
@@ -465,42 +468,42 @@ ConfigParser::Listen ConfigParser::parseListen(const std::string &listen_value)
         std::string host = listen_value.substr(0, colon_pos);
         std::string port = listen_value.substr(colon_pos + 1);
 
-        if(host.empty())
+        if (host.empty())
             throw std::runtime_error("Invalid listen value, missed host before colon");
 
-        if(!isValidPort(port))
-            throw std::runtime_error("Invalid Port number in listen value: " + port); 
+        if (!isValidPort(port))
+            throw std::runtime_error("Invalid Port number in listen value: " + port);
 
-        if(host == "localhost")
+        if (host == "localhost")
             return Listen("0.0.0.0", port);
 
-        if(!isValidIPv4(host))
-            throw std::runtime_error("Invalid IP address format in listen value: " + host); 
+        if (!isValidIPv4(host))
+            throw std::runtime_error("Invalid IP address format in listen value: " + host);
 
         return Listen(host, port);
     }
     else
     {
-        if(!isValidPort(listen_value))
-            throw std::runtime_error("Invalid Port number in listen value: " + listen_value); 
-            
+        if (!isValidPort(listen_value))
+            throw std::runtime_error("Invalid Port number in listen value: " + listen_value);
+
         return Listen("0.0.0.0", listen_value);
     }
 }
 
-bool    ConfigParser::isValidPort(const std::string& port)
+bool ConfigParser::isValidPort(const std::string &port)
 {
-    if(!isDigitString(port))
+    if (!isDigitString(port))
         return false;
 
     int num = atoi(port.c_str());
-    if(num < 1 || num > 65535)
+    if (num < 1 || num > 65535)
         return false;
 
     return true;
 }
 
-bool    ConfigParser::isValidIPv4(const std::string& ip)
+bool ConfigParser::isValidIPv4(const std::string &ip)
 {
     size_t start = 0;
     int bytes = 0;
@@ -508,30 +511,30 @@ bool    ConfigParser::isValidIPv4(const std::string& ip)
     // if(ip == "localhost")// still thinking where to locate this
     //     return true;
 
-    while(start < ip.size() && bytes < 4)
+    while (start < ip.size() && bytes < 4)
     {
         size_t end = ip.find(".", start);
 
-        if(end == std::string::npos)
+        if (end == std::string::npos)
             end = ip.size();
         std::string byte = ip.substr(start, end - start);
 
         std::cout << byte << std::endl;
-        if(byte.empty())
+        if (byte.empty())
         {
             std::cout << "tkchm\n";
             return false;
         }
-        if(!isDigitString(byte))
+        if (!isDigitString(byte))
         {
             std::cout << "tkchm\n";
             return false;
         }
-        
+
         int num = atoi(byte.c_str());
-        if(num < 0 || num > 255)
+        if (num < 0 || num > 255)
             return false;
-            
+
         bytes += 1;
 
         start = end + 1;
@@ -540,20 +543,18 @@ bool    ConfigParser::isValidIPv4(const std::string& ip)
     return (bytes == 4 && start > ip.size());
 }
 
-
-bool ConfigParser::isDigitString(const std::string& str)
+bool ConfigParser::isDigitString(const std::string &str)
 {
 
-    for(size_t i = 0; i < str.size(); i++)
+    for (size_t i = 0; i < str.size(); i++)
     {
-        if(!isdigit(str[i]))
+        if (!isdigit(str[i]))
             return false;
     }
     return true;
 }
 
-
-    std::string ConfigParser::intToString(int value)
+std::string ConfigParser::intToString(int value)
 {
     std::ostringstream oss;
     oss << value;
@@ -689,8 +690,8 @@ void ConfigParser::parse()
         else
         {
             throw std::runtime_error("Unknown directive: " + directive +
-                " at line " + intToString(line_number));
-            }
+                                     " at line " + intToString(line_number));
+        }
     }
     std::cout << "(" << directive << ")" << std::endl;
     validatePorts();
@@ -708,7 +709,7 @@ void ConfigParser::printConfig()
     {
         std::cout << AnsiColor::BOLD_BLUE << "Server " << i + 1 << ":" << AnsiColor::BOLD_MAGENTA << std::endl;
 
-        std::cout << AnsiColor::BOLD_CYAN << "  Server name: " << AnsiColor::BOLD_MAGENTA<< servers[i].server_name << std::endl;
+        std::cout << AnsiColor::BOLD_CYAN << "  Server name: " << AnsiColor::BOLD_MAGENTA << servers[i].server_name << std::endl;
 
         std::cout << AnsiColor::BOLD_CYAN << "  Listen: " << AnsiColor::BOLD_GREEN;
         for (size_t j = 0; j < servers[i].listen.size(); j++)
@@ -739,9 +740,9 @@ size_t ConfigParser::getListenCount() const
     return ListenCount;
 }
 
-void    ConfigParser::printPos(){
+void ConfigParser::printPos()
+{
 
     std::cout << pos << "---> ";
     std::cout << line_number << std::endl;
-
 }
