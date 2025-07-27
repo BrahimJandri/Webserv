@@ -529,9 +529,6 @@ bool ConfigParser::isDigitString(const std::string& str)
 }
 
 
-
-
-
     std::string ConfigParser::intToString(int value)
 {
     std::ostringstream oss;
@@ -594,9 +591,9 @@ void ConfigParser::validateRequiredDirectives()
         const ServerConfig &server = servers[i];
 
         // Check if server has at least one listen directive
-        if (server.listen.empty())
+        if (server.listen.empty() || server.limit_client_body_size == 0)
         {
-            throw std::runtime_error("Server block missing required 'listen' directive");
+            throw std::runtime_error("Server block missing required directive");
         }
 
         // Check if server has a root directive or all locations have root directives
@@ -680,6 +677,7 @@ size_t ConfigParser::getServerCount() const
 {
     return servers.size();
 }
+
 void ConfigParser::printConfig()
 {
     for (size_t i = 0; i < servers.size(); i++)
