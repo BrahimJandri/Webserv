@@ -32,7 +32,7 @@ void Client::appendToBuffer(const std::string &data)
     _buffer += data;
 }
 
-bool Client::processRequest()
+bool Client::processRequest() // brahim
 {
     if (_request_complete)
     {

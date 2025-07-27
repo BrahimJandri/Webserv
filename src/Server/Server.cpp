@@ -90,7 +90,8 @@ void Server::setupServers(const ConfigParser &parser)
             int server_fd = create_server_socket(host, std::atoi(port.c_str()));
             if (server_fd == -1)
             {
-                std::cerr << "Failed to create server socket." << std::endl;
+                Utils::log("Failed to create server socket on " + host + ":" + port, AnsiColor::BOLD_RED);
+                this->Cleanup();
                 exit(EXIT_FAILURE);
             }
 
@@ -211,6 +212,8 @@ bool isHexDigit(char c)
 
 char hexToChar(char high, char low)
 {
+    if (!isHexDigit(high) || !isHexDigit(low))
+        throw std::invalid_argument("Invalid hex digit");
     int highVal = std::isdigit(high) ? high - '0' : std::tolower(high) - 'a' + 10;
     int lowVal = std::isdigit(low) ? low - '0' : std::tolower(low) - 'a' + 10;
     return static_cast<char>((highVal << 4) | lowVal);
@@ -237,7 +240,7 @@ std::string removePercentEncoded(const std::string &input)
 }
 
 // Main normalization function
-void normalize_path(std::string &path)
+void normalize_path(std::string &path) // brahim
 {
     if (path.empty())
         return;
@@ -415,7 +418,7 @@ void printRequest(const requestParser &req)
     std::cout << "-----------------------------" << std::endl;
 }
 
-int Server::prepareResponse(const requestParser &req, int client_fd)
+int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
 {
     ConfigParser::ServerConfig serverConfig = clientToServergMap[client_fd];
     std::string path = req.getPath();
@@ -665,24 +668,41 @@ void Server::handleConnections()
 
 void Server::Cleanup()
 {
-    // Close and delete all client sockets
-    for (std::map<int, Client *>::iterator iter = clients.begin(); iter != clients.end(); ++iter)
+    // Close and delete all client sockets if any
+    if (!clients.empty())
     {
-        close(iter->first);  // Close client socket
-        delete iter->second; // Delete Client object
-    }
-    clients.clear();
+        for (std::map<int, Client *>::iterator iter = clients.begin(); iter != clients.end(); ++iter)
+        {
+            if (iter->first >= 0) // Valid socket descriptor
+                close(iter->first);
 
-    // Close all server listening sockets (set<int>)
-    for (std::set<int>::iterator it = server_fds.begin(); it != server_fds.end(); ++it)
+            if (iter->second != NULL) // Safe delete
+                delete iter->second;
+        }
+        clients.clear();
+    }
+    if (epoll_fd >= 0 && epoll_fd != -1) // Valid epoll fd
     {
-        close(*it);
+        close(epoll_fd);
     }
-    server_fds.clear();
 
-    // Clear config-related structures
-    serverConfigMap.clear();
-    clientToServergMap.clear();
+    // Close all server listening sockets if any
+    if (!server_fds.empty())
+    {
+        for (std::set<int>::iterator it = server_fds.begin(); it != server_fds.end(); ++it)
+        {
+            if (*it >= 0)
+                close(*it);
+        }
+        server_fds.clear();
+    }
+
+    // Clear config maps if they contain entries
+    if (!serverConfigMap.empty())
+        serverConfigMap.clear();
+
+    if (!clientToServergMap.empty())
+        clientToServergMap.clear();
 }
 
 // Helper function to send an HTTP response (status line and headers only)
