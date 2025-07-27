@@ -494,24 +494,32 @@ bool    ConfigParser::isValidIPv4(const std::string& ip)
 
     while(start < ip.size() && bytes < 4)
     {
-        size_t end = ip.find(".");
+        size_t end = ip.find(".", start);
 
         if(end == std::string::npos)
             end = ip.size();
         std::string byte = ip.substr(start, end - start);
 
+        std::cout << byte << std::endl;
         if(byte.empty())
+        {
+            std::cout << "tkchm\n";
             return false;
+        }
         if(!isDigitString(byte))
+        {
+            std::cout << "tkchm\n";
             return false;
+        }
         
         int num = atoi(byte.c_str());
         if(num < 0 || num > 255)
             return false;
             
-        bytes++;
+        bytes += 1;
 
         start = end + 1;
+        std::cout << "bytes = " << bytes << " |start = " << start << std::endl;
     }
     return (bytes == 4 && start > ip.size());
 }
