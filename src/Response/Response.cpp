@@ -219,7 +219,7 @@ Response Response::buildGetResponse(const requestParser &request, const std::str
 {
     if (docRoot.empty())
     {
-        send_error_response(client_fd, 500, "Internal Server Error", serverConfig);
+        send_error_response(client_fd, 404, "Not Found", serverConfig);
         return Response();
     }
 

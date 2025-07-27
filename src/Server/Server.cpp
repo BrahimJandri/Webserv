@@ -448,7 +448,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
     }
 
     // Determine root
-    std::string root = location ? location->root : serverConfig.locations[0].root;
+    std::string root = location->root;
     if (root.empty())
     {
         send_error_response(client_fd, 500, "Root not specified", serverConfig);
@@ -532,12 +532,6 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
     Utils::log("Sending response to client fd: " + to_string_c98(client_fd), AnsiColor::BOLD_BLUE);
     Utils::log("Method: " + req.getMethod() + ", Path: " + req.getPath() + ", Status Code: " + to_string_c98(response.getStatusCode()), AnsiColor::BOLD_YELLOW);
     clients[client_fd]->setResponse(response_str);
-    if (send(client_fd, response_str.c_str(), response_str.length(), 0) == -1)
-    {
-        perror("send");
-        closeClientConnection(client_fd);
-        return -1;
-    }
     return 0;
 }
 
@@ -606,20 +600,8 @@ void Server::handleClientWrite(int client_fd)
     Client *client = clients[client_fd];
     const std::string &response = client->getResponse();
 
-    ssize_t bytes_sent = write(client_fd, response.c_str(), response.size());
-
-    if (bytes_sent >= 0)
-    {
-        // For simplicity: close connection after sending full response
-        // In real server, you would handle partial writes and keep connection if Keep-Alive
-        closeClientConnection(client_fd);
-    }
-    else
-    {
-        // write() failed — you're not allowed to check errno
-        // Assume failure is permanent, close connection
-        closeClientConnection(client_fd);
-    }
+    write(client_fd, response.c_str(), response.size()); // Send response
+    closeClientConnection(client_fd);
 }
 
 void Server::handleConnections()
