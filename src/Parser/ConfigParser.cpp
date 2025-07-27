@@ -386,6 +386,9 @@ void ConfigParser::parseServer(ServerConfig &server)
                 throw std::runtime_error("Duplicate 'server_name' directive in server block");
             }
             server.server_name = parseDirectiveValue();
+            if(server.server_name.empty())
+                throw std::runtime_error("server_name can not be empty");
+            
         }
         else if (directive == "error_page")
         {
@@ -455,7 +458,7 @@ void ConfigParser::parseServer(ServerConfig &server)
         else
         {
             // Skip unknown 
-            throw std::runtime_error("Unknown Directive");
+            throw std::runtime_error("Unknown Directive " + intToString(line_number));
                 parseDirectiveValue();
         }
 
