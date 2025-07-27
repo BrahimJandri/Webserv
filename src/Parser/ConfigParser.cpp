@@ -113,7 +113,8 @@ std::string ConfigParser::parseDirectiveValue()
     // printPos();Rachid for debuging
     while ((token = parseToken()) != "")
     {
-        std::cout << token << std::endl; // For deubging
+        // std::cout << token << std::endl; // For deubging
+    
         // Check if this token looks like a directive keyword (this would indicate missing semicolon)
         if (value.empty() == false && (token == "server_name" || token == "listen" || token == "error_page" ||
                                        token == "limit_client_body_size" || token == "autoindex" || token == "location" ||
@@ -508,9 +509,6 @@ bool ConfigParser::isValidIPv4(const std::string &ip)
     size_t start = 0;
     int bytes = 0;
 
-    // if(ip == "localhost")// still thinking where to locate this
-    //     return true;
-
     while (start < ip.size() && bytes < 4)
     {
         size_t end = ip.find(".", start);
@@ -519,17 +517,11 @@ bool ConfigParser::isValidIPv4(const std::string &ip)
             end = ip.size();
         std::string byte = ip.substr(start, end - start);
 
-        std::cout << byte << std::endl;
         if (byte.empty())
-        {
-            std::cout << "tkchm\n";
             return false;
-        }
+
         if (!isDigitString(byte))
-        {
-            std::cout << "tkchm\n";
             return false;
-        }
 
         int num = atoi(byte.c_str());
         if (num < 0 || num > 255)
@@ -538,7 +530,6 @@ bool ConfigParser::isValidIPv4(const std::string &ip)
         bytes += 1;
 
         start = end + 1;
-        std::cout << "bytes = " << bytes << " |start = " << start << std::endl;
     }
     return (bytes == 4 && start > ip.size());
 }
