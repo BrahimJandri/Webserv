@@ -244,9 +244,11 @@ void ConfigParser::parseLocation(LocationConfig &location)
     }
 
     std::string directive;
+    bool autoindex_seen = false;
     while (true)
     {
         // Check if we're at the end of the block before trying to parse a directive
+
         skipComments();
         if (pos < content.length() && content[pos] == '}')
         {
@@ -289,6 +291,10 @@ void ConfigParser::parseLocation(LocationConfig &location)
         }
         else if (directive == "autoindex")
         {
+            if(autoindex_seen)
+                throw std::runtime_error("Duplicate 'autoindex' in the same location block");
+            autoindex_seen = true;
+
             std::string value = parseDirectiveValue();
             if(value.empty() || (value != "off" && value != "on"))
                 throw std::runtime_error("Unvalid value for autoindex: Use only 'on' or 'off'");
