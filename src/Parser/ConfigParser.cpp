@@ -341,10 +341,8 @@ void ConfigParser::parseLocation(LocationConfig &location)
                 throw std::runtime_error("'return' directive cannot be empty at line " + intToString(line_number));
         }
         else
-        {
             // Skip unknown directive
-            parseDirectiveValue();
-        }
+            throw std::runtime_error("Unknown Directive " + intToString(line_number));
 
         if (!expectSemicolon())
         {
