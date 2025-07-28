@@ -4,34 +4,52 @@
     <title>200 OK</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: Helvetica, Arial, sans-serif;
             text-align: center;
             padding: 50px;
-        }
-
-        h1 {
-            color: blue;
-            font-size: 50px;
-        }
-
-        body {
-            text-align: center;
-            font: 20px Helvetica, sans-serif;
+            font-size: 20px;
             color: #333;
         }
 
+        h1 {
+            color: #007BFF;
+            font-size: 50px;
+            margin-bottom: 20px;
+        }
+
         article {
-            display: block;
             max-width: 650px;
             margin: 0 auto;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            font-size: 18px;
+            text-decoration: none;
+            color: #007BFF;
+        }
+
+        a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <article>
         <h1>200 OK</h1>
-        <p>Well Done!</p>
-        <img src="../err_imgs/200.jpg" alt="">
+        <p>Well done! Your request has succeeded.</p>
+        <p>You can return to the homepage below:</p>
+        <a href="/">Go to Homepage</a>
+        <img src="../err_imgs/200.jpg" alt="200 OK Image">
     </article>
 </body>
 </html>

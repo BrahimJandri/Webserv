@@ -22,6 +22,7 @@ public:
     Response();
     ~Response();
 
+    ConfigParser::ServerConfig serverConfig; // To hold server configuration for response handling
     // Setters
     void setStatus(int code, const std::string &message);
     void addHeader(const std::string &key, const std::string &value);
