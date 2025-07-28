@@ -677,6 +677,11 @@ void ConfigParser::parseFile(const std::string &filename)
     content = buffer.str();
     file.close();
 
+    if (content.empty())
+    {
+        throw std::runtime_error("Configuration file is empty: " + filename);
+    }
+
     parse();
 }
 
