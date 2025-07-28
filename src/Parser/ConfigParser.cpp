@@ -251,9 +251,7 @@ void ConfigParser::parseLocation(LocationConfig &location)
 
         skipComments();
         if (pos < content.length() && content[pos] == '}')
-        {
             break;
-        }
 
         directive = parseToken();
         if (directive.empty())
@@ -264,15 +262,19 @@ void ConfigParser::parseLocation(LocationConfig &location)
 
         if (directive == "root")
         {
+            if (!location.root.empty())
+                throw std::runtime_error("Duplicate 'root' directive in location block");
+
             std::string root_value = parseDirectiveValue();
+            
             if (root_value.empty())
-            {
                 throw std::runtime_error("'root' directive cannot be empty in location block at line " + intToString(line_number));
-            }
+
             location.root = root_value;
         }
         else if (directive == "index")
         {
+            
             std::vector<std::string> index_values = parseMultipleValues();
             if (index_values.empty())
             {
@@ -330,6 +332,8 @@ void ConfigParser::parseLocation(LocationConfig &location)
         else if (directive == "return")
         {
             location.return_directive = parseDirectiveValue();
+            if(location.return_directive.empty())
+                throw std::runtime_error("'return' directive cannot be empty at line " + intToString(line_number));
         }
         else
         {
@@ -351,6 +355,8 @@ void ConfigParser::parseLocation(LocationConfig &location)
     }
 }
 
+
+
 void ConfigParser::parseServer(ServerConfig &server)
 {
     if (parseSpecialChar() != '{')
@@ -360,6 +366,7 @@ void ConfigParser::parseServer(ServerConfig &server)
     }
 
     std::string directive;
+    bool bodysize_seen = false;
     while (true)
     {
         // Check if we're at the end of the block before trying to parse a directive
@@ -430,11 +437,14 @@ void ConfigParser::parseServer(ServerConfig &server)
 
         else if (directive == "limit_client_body_size")
         {
+            if (bodysize_seen)
+                throw std::runtime_error("Duplicate 'limit_client_body_size' at line " + intToString(line_number));
+            bodysize_seen = true;
+
             std::string value = parseDirectiveValue();
             if (value.empty() || value == "0")
-            {
                 throw std::runtime_error("'limit_client_body_size' directive cannot be empty at line " + intToString(line_number));
-            }
+
             try
             {
                 server.limit_client_body_size = parseSizeToBytes(value);
@@ -446,6 +456,9 @@ void ConfigParser::parseServer(ServerConfig &server)
         }
         else if (directive == "root")
         {
+            if (!server.root.empty())
+                throw std::runtime_error("Duplicate 'root' directive in server block");
+
             std::string root_value = parseDirectiveValue();
             if (root_value.empty())
             {
@@ -490,7 +503,7 @@ void ConfigParser::parseServer(ServerConfig &server)
 bool ConfigParser::isValidServerName(const std::string &name)
 {
     if (name.empty())
-        throw std::runtime_error("server_name can not be empty");
+        throw std::runtime_error("'server_name' directive cannot be empty at line " + intToString(line_number));
 
     if (name.find(" ") != std::string::npos)
         return false;
@@ -626,41 +639,20 @@ void ConfigParser::validateRequiredDirectives()
     {
         const ServerConfig &server = servers[i];
 
-        // Check if server has at least one listen directive
+        // Check if server has at least one listen directive and limit_client_body_size
         if (server.listen.empty() || server.limit_client_body_size == 0)
         {
             throw std::runtime_error("Server block missing required directive");
         }
 
-        // Check if server has a root directive or all locations have root directives
-        bool server_has_root = !server.locations.empty() && !server.locations[0].root.empty();
-        bool all_locations_have_root = true;
-
-        // If server has no root directive, check if all locations have root directives
-        if (!server_has_root)
+        // Only check if server has root directive - don't worry about locations
+        if (server.root.empty())
         {
-            if (server.locations.empty())
-            {
-                throw std::runtime_error("Server block must have either a root directive or location blocks with root directives");
-            }
-
-            for (size_t j = 0; j < server.locations.size(); j++)
-            {
-                const LocationConfig &location = server.locations[j];
-                if (location.root.empty())
-                {
-                    all_locations_have_root = false;
-                    break;
-                }
-            }
-
-            if (!all_locations_have_root)
-            {
-                throw std::runtime_error("Server block must have a root directive or all location blocks must have root directives");
-            }
+            throw std::runtime_error("Server block missing required 'root' directive");
         }
     }
 }
+
 
 void ConfigParser::parseFile(const std::string &filename)
 {
