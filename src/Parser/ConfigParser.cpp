@@ -290,6 +290,8 @@ void ConfigParser::parseLocation(LocationConfig &location)
         else if (directive == "autoindex")
         {
             std::string value = parseDirectiveValue();
+            if(value.empty() || (value != "off" && value != "on"))
+                throw std::runtime_error("Unvalid value for autoindex: Use only 'on' or 'off'");
             location.autoindex = (value == "on");
         }
         else if (directive == "cgi_map")
