@@ -463,10 +463,8 @@ void ConfigParser::parseServer(ServerConfig &server)
                 throw std::runtime_error("Duplicate 'root' directive in server block");
 
             std::string root_value = parseDirectiveValue();
-            if (root_value.empty())
-            {
+            if (root_value.empty() || root_value.find(" ") != std::string::npos )
                 throw std::runtime_error("'root' directive cannot be empty in server block at line " + intToString(line_number));
-            }
             server.root = root_value;
         }
         else if (directive == "location")
