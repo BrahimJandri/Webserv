@@ -337,7 +337,7 @@
       button.innerHTML = '<span class="relative z-10">Processing...</span>';
       button.disabled = true;
 
-      fetch('/cgi-bin/auth.cgi', {
+      fetch('/cgi-bin/auth.py', {
         method: 'POST',
         body: new URLSearchParams(formData),
         headers: {

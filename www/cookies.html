@@ -375,7 +375,7 @@
       }
     }
 
-    // Set Cookie Function - using document.cookie (client-side)
+    // Set Cookie Function - now using server-side CGI script
     document.getElementById('setCookieForm').addEventListener('submit', (event) => {
       event.preventDefault();
       setLoading('set-cookie-btn', true);
@@ -391,33 +391,64 @@
         return;
       }
 
-      try {
-        let cookieString = `${name}=${value}`;
+      // Prepare request data
+      const requestData = {
+        name: name,
+        value: value
+      };
 
-        if (expiry) {
-          const expiryDate = new Date();
-          expiryDate.setTime(expiryDate.getTime() + (parseInt(expiry) * 1000));
-          cookieString += `; expires=${expiryDate.toUTCString()}`;
-        }
-
-        document.cookie = cookieString;
-
-        responseArea.value = `Cookie set successfully!\nName: ${name}\nValue: ${value}\nPath: /\nExpiry: ${expiry ? expiry + ' seconds' : 'Session'}\nCookie String: ${cookieString}`;
-        showMessage('set-cookie-message', 'Cookie set successfully!');
-
-        // Clear form
-        document.getElementById('setCookieForm').reset();
-
-      } catch (error) {
-        console.error('Set cookie error:', error);
-        responseArea.value = `Error setting cookie: ${error.message}`;
-        showMessage('set-cookie-message', 'Failed to set cookie!', 'error');
+      if (expiry && expiry.trim() !== '') {
+        requestData.expiry = parseInt(expiry);
       }
 
-      setLoading('set-cookie-btn', false);
+      // Send request to set_cookie.py
+      fetch('/cgi-bin/set_cookie.py', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      })
+        .then(async (res) => {
+          const body = await res.text();
+
+          if (!res.ok) {
+            // Replace page content with the HTML error page sent by server
+            document.open();
+            document.write(body);
+            document.close();
+            return;
+          }
+
+          let data;
+          try {
+            data = JSON.parse(body);
+          } catch (e) {
+            throw new Error("Invalid JSON response from CGI script.");
+          }
+
+          if (data.success) {
+            responseArea.value = `Cookie set successfully!\n\nDetails:\n- Name: ${data.details.name}\n- Value: ${data.details.value}\n- Encoded Value: ${data.details.encoded_value}\n- Expiry: ${data.details.expiry}\n- Cookie String: ${data.details.cookie_string}`;
+            showMessage('set-cookie-message', 'Cookie set successfully!');
+            
+            // Clear form
+            document.getElementById('setCookieForm').reset();
+          } else {
+            responseArea.value = `Error: ${data.error}`;
+            showMessage('set-cookie-message', data.error || 'Failed to set cookie!', 'error');
+          }
+        })
+        .catch(err => {
+          responseArea.value = `Error setting cookie: ${err.message}`;
+          showMessage('set-cookie-message', 'Failed to set cookie!', 'error');
+          console.error(err);
+        })
+        .finally(() => {
+          setLoading('set-cookie-btn', false);
+        });
     });
 
-    // Get Cookie Function - using your original logic
+    // Get Cookie Function - using existing get_cookie.py
     document.getElementById("get-cookie-btn").addEventListener("click", () => {
       setLoading('get-cookie-btn', true);
 
@@ -431,7 +462,7 @@
         return;
       }
 
-      fetch('/cgi-bin/get_cookie.cgi', {
+      fetch('/cgi-bin/get_cookie.py', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -439,19 +470,19 @@
         body: JSON.stringify({ name: cookieName })
       })
         .then(async (res) => {
-          const body = await res.text(); // always read as text (HTML or JSON)
+          const body = await res.text();
 
           if (!res.ok) {
             // Replace page content with the HTML error page sent by server
             document.open();
-            document.write(body);  // render full HTML error page
+            document.write(body);
             document.close();
             return;
           }
 
           let data;
           try {
-            data = JSON.parse(body); // try to parse as JSON
+            data = JSON.parse(body);
           } catch (e) {
             throw new Error("Invalid JSON from CGI script.");
           }

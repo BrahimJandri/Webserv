@@ -563,7 +563,7 @@
       showMessage('Encoding data...', 'info');
 
       try {
-        const res = await fetch("/cgi-bin/encoder.cgi", {
+        const res = await fetch("/cgi-bin/encoder.py", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
