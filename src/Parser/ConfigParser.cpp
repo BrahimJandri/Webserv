@@ -266,7 +266,7 @@ void ConfigParser::parseLocation(LocationConfig &location)
                 throw std::runtime_error("Duplicate 'root' directive in location block");
 
             std::string root_value = parseDirectiveValue();
-            
+
             if (root_value.empty() || root_value.find(" ") != std::string::npos)
                 throw std::runtime_error("'root' directive cannot be empty in location block at line " + intToString(line_number));
 
@@ -274,7 +274,7 @@ void ConfigParser::parseLocation(LocationConfig &location)
         }
         else if (directive == "index")
         {
-            if(!location.index.empty())
+            if (!location.index.empty())
                 throw std::runtime_error("Duplicate 'index' directive in location block");
             std::string index_value = parseDirectiveValue();
 
@@ -284,9 +284,16 @@ void ConfigParser::parseLocation(LocationConfig &location)
         }
         else if (directive == "allowed_methods")
         {
-            if(!location.allowed_methods.empty())
+            if (!location.allowed_methods.empty())
                 throw std::runtime_error("Duplicate 'allowed_methods' directive in location block");
             std::vector<std::string> methods = parseMultipleValues();
+
+            for (std::vector<std::string>::iterator it = methods.begin(); it != methods.end(); ++it)
+            {
+                if (*it != "GET" && *it != "POST" && *it != "DELETE")
+                    throw std::runtime_error("Invalid HTTP method in allowed_methods: " + *it);
+            }
+
             if (methods.empty())
             {
                 throw std::runtime_error("'allowed_methods' directive cannot be empty in location block at line " + intToString(line_number));
@@ -333,11 +340,11 @@ void ConfigParser::parseLocation(LocationConfig &location)
         }
         else if (directive == "return")
         {
-            if(!location.return_directive.empty())
+            if (!location.return_directive.empty())
                 throw std::runtime_error("Duplicate 'return' directive in location block");
 
             location.return_directive = parseDirectiveValue();
-            if(location.return_directive.empty() || location.return_directive.find(" ") != std::string::npos)
+            if (location.return_directive.empty() || location.return_directive.find(" ") != std::string::npos)
                 throw std::runtime_error("'return' directive cannot be empty at line " + intToString(line_number));
         }
         else
@@ -357,8 +364,6 @@ void ConfigParser::parseLocation(LocationConfig &location)
                                  intToString(line_number));
     }
 }
-
-
 
 void ConfigParser::parseServer(ServerConfig &server)
 {
@@ -463,7 +468,7 @@ void ConfigParser::parseServer(ServerConfig &server)
                 throw std::runtime_error("Duplicate 'root' directive in server block");
 
             std::string root_value = parseDirectiveValue();
-            if (root_value.empty() || root_value.find(" ") != std::string::npos )
+            if (root_value.empty() || root_value.find(" ") != std::string::npos)
                 throw std::runtime_error("'root' directive cannot be empty in server block at line " + intToString(line_number));
             server.root = root_value;
         }
@@ -653,7 +658,6 @@ void ConfigParser::validateRequiredDirectives()
         }
     }
 }
-
 
 void ConfigParser::parseFile(const std::string &filename)
 {
