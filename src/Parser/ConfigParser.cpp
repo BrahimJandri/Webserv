@@ -156,7 +156,7 @@ std::vector<std::string> ConfigParser::parseMultipleValues()
         // Check if this token looks like a directive keyword (this would indicate missing semicolon)
         if (!values.empty() && (token == "server_name" || token == "listen" || token == "error_page" ||
                                 token == "limit_client_body_size" || token == "autoindex" || token == "location" ||
-                                token == "root" || token == "index" || token == "allowed_methods" || token == "return"))
+                                token == "root" || token == "index" || token == "allowed_methods" || token == "return" || token == "cgi_map"))
         {
             throw std::runtime_error("Missing semicolon after directive values before '" + token + "' at line " + intToString(line_number));
         }
@@ -291,12 +291,12 @@ void ConfigParser::parseLocation(LocationConfig &location)
         }
         else if (directive == "autoindex")
         {
-            if(autoindex_seen)
+            if (autoindex_seen)
                 throw std::runtime_error("Duplicate 'autoindex' in the same location block");
             autoindex_seen = true;
 
             std::string value = parseDirectiveValue();
-            if(value.empty() || (value != "off" && value != "on"))
+            if (value.empty() || (value != "off" && value != "on"))
                 throw std::runtime_error("Unvalid value for autoindex: Use only 'on' or 'off'");
             location.autoindex = (value == "on");
         }
@@ -359,7 +359,6 @@ void ConfigParser::parseServer(ServerConfig &server)
                                  intToString(line_number));
     }
 
-
     std::string directive;
     while (true)
     {
@@ -389,12 +388,12 @@ void ConfigParser::parseServer(ServerConfig &server)
         }
         else if (directive == "server_name")
         {
-            if(!server.server_name.empty())
+            if (!server.server_name.empty())
                 throw std::runtime_error("Duplicate 'server_name' directive in server block");
 
             server.server_name = parseDirectiveValue();
 
-            if(!isValidServerName(server.server_name))
+            if (!isValidServerName(server.server_name))
                 throw std::runtime_error("Unvalid 'server_name' at line " + intToString(line_number));
         }
         else if (directive == "error_page")
@@ -464,9 +463,9 @@ void ConfigParser::parseServer(ServerConfig &server)
         }
         else
         {
-            // Skip unknown 
+            // Skip unknown
             throw std::runtime_error("Unknown Directive " + intToString(line_number));
-                parseDirectiveValue();
+            parseDirectiveValue();
         }
 
         if (!expectSemicolon())
@@ -488,16 +487,15 @@ void ConfigParser::parseServer(ServerConfig &server)
     }
 }
 
-bool    ConfigParser::isValidServerName(const std::string& name)
+bool ConfigParser::isValidServerName(const std::string &name)
 {
-    if(name.empty())
+    if (name.empty())
         throw std::runtime_error("server_name can not be empty");
 
-    if(name.find(" ") != std::string::npos)
+    if (name.find(" ") != std::string::npos)
         return false;
     return true;
 }
-
 
 ConfigParser::Listen ConfigParser::parseListen(const std::string &listen_value)
 {
