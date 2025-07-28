@@ -88,4 +88,7 @@ public:
     bool    isValidIPv4(const std::string& ip);
     bool    isDigitString(const std::string& str);
     bool    isValidPort(const std::string& port);
+
+    bool    isValidServerName(const std::string& name);
+
 };

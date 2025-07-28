@@ -382,13 +382,12 @@ void ConfigParser::parseServer(ServerConfig &server)
         else if (directive == "server_name")
         {
             if(!server.server_name.empty())
-            {
                 throw std::runtime_error("Duplicate 'server_name' directive in server block");
-            }
+
             server.server_name = parseDirectiveValue();
-            if(server.server_name.empty())
-                throw std::runtime_error("server_name can not be empty");
-            
+
+            if(!isValidServerName(server.server_name))
+                throw std::runtime_error("Unvalid 'server_name' at line " + intToString(line_number));
         }
         else if (directive == "error_page")
         {
@@ -480,6 +479,17 @@ void ConfigParser::parseServer(ServerConfig &server)
                                  intToString(line_number));
     }
 }
+
+bool    ConfigParser::isValidServerName(const std::string& name)
+{
+    if(name.empty())
+        throw std::runtime_error("server_name can not be empty");
+
+    if(name.find(" ") != std::string::npos)
+        return false;
+    return true;
+}
+
 
 ConfigParser::Listen ConfigParser::parseListen(const std::string &listen_value)
 {
