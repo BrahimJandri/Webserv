@@ -19,7 +19,7 @@ public:
     {
         std::string path;
         std::string root;
-        std::vector<std::string> index;
+        std::string index;
         std::vector<std::string> allowed_methods;
         std::map<std::string, std::string> cgi;
         std::string return_directive;

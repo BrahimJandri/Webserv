@@ -274,16 +274,18 @@ void ConfigParser::parseLocation(LocationConfig &location)
         }
         else if (directive == "index")
         {
-            
-            std::vector<std::string> index_values = parseMultipleValues();
-            if (index_values.empty())
-            {
+            if(!location.index.empty())
+                throw std::runtime_error("Duplicate 'index' directive in location block");
+            std::string index_value = parseDirectiveValue();
+
+            if (index_value.empty())
                 throw std::runtime_error("'index' directive cannot be empty in location block at line " + intToString(line_number));
-            }
-            location.index = index_values;
+            location.index = index_value;
         }
         else if (directive == "allowed_methods")
         {
+            if(!location.allowed_methods.empty())
+                throw std::runtime_error("Duplicate 'allowed_methods' directive in location block");
             std::vector<std::string> methods = parseMultipleValues();
             if (methods.empty())
             {
@@ -331,6 +333,9 @@ void ConfigParser::parseLocation(LocationConfig &location)
         }
         else if (directive == "return")
         {
+            if(!location.return_directive.empty())
+                throw std::runtime_error("Duplicate 'return' directive in location block");
+
             location.return_directive = parseDirectiveValue();
             if(location.return_directive.empty())
                 throw std::runtime_error("'return' directive cannot be empty at line " + intToString(line_number));
