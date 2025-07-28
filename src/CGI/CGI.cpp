@@ -33,14 +33,11 @@ void CGIHandler::freeEnvArray(char **env)
 
 std::string CGIHandler::execute(const std::string &scriptPath, const requestParser &request, const std::map<std::string, std::string> &envVars, const std::string &interpreter)
 {
-
     int stdin_pipe[2];
     int stdout_pipe[2];
 
     if (pipe(stdin_pipe) == -1 || pipe(stdout_pipe) == -1)
-    {
         throw std::runtime_error("pipe() failed");
-    }
 
     pid_t pid = fork();
     if (pid < 0)
@@ -54,101 +51,93 @@ std::string CGIHandler::execute(const std::string &scriptPath, const requestPars
 
     if (pid == 0)
     {
-        // Child process
-
-        // Redirect stdin and stdout
+        // CHILD
         dup2(stdin_pipe[0], STDIN_FILENO);
+        dup2(stdout_pipe[1], STDOUT_FILENO);
         close(stdin_pipe[0]);
         close(stdin_pipe[1]);
-        dup2(stdout_pipe[1], STDOUT_FILENO);
-        close(stdout_pipe[1]);
         close(stdout_pipe[0]);
+        close(stdout_pipe[1]);
 
-        // Change to script's directory to handle relative paths correctly
-        // std::string scriptDir = scriptPath.substr(0, scriptPath.find_last_of('/'));
         std::string scriptDir = scriptPath.substr(0, scriptPath.find_last_of('/'));
         if (chdir(scriptDir.c_str()) == -1)
         {
-            std::cout << "Failed to change directory to script's directory: " << std::endl;
             perror("chdir");
             exit(EXIT_FAILURE);
         }
-        // Prepare environment variables and arguments for execve
+
         char **envp = buildEnvArray(envVars);
-
-        // --- DYNAMIC INTERPRETER LOGIC START ---
-
         std::string executableName = interpreter;
-
-        // Extract script filename only (basename)
         std::string scriptFileName = scriptPath.substr(scriptPath.find_last_of('/') + 1);
-
-        // chdir(scriptDir)
 
         std::vector<const char *> argv_vec;
         argv_vec.push_back(executableName.c_str());
-
         if (interpreter != scriptPath)
-        {
             argv_vec.push_back(scriptFileName.c_str());
-        }
-
         argv_vec.push_back(NULL);
 
-        if (execve(executableName.c_str(), const_cast<char *const *>(argv_vec.data()), envp) == -1)
-        {
-            perror("execve");
-            freeEnvArray(envp);
-            exit(EXIT_FAILURE);
-        }
-
-        // --- DYNAMIC INTERPRETER LOGIC END ---
-
-        // If execve fails, this code will be reached
+        execve(executableName.c_str(), const_cast<char *const *>(argv_vec.data()), envp);
         perror("execve");
-        freeEnvArray(envp); // Clean up allocated memory
+        freeEnvArray(envp);
         exit(EXIT_FAILURE);
     }
     else
     {
-        // Parent process
-
+        // PARENT
         close(stdin_pipe[0]);
         close(stdout_pipe[1]);
 
-        // Write request body to child's stdin if it's a POST request
         if (request.getMethod() == "POST" && !request.getBody().empty())
         {
-            ssize_t bytesWritten = write(stdin_pipe[1], request.getBody().c_str(), request.getBody().size());
-            if (bytesWritten < 0)
-            {
-                // Handle write error if necessary
-                perror("write to cgi");
-            }
+            write(stdin_pipe[1], request.getBody().c_str(), request.getBody().size());
         }
-        close(stdin_pipe[1]); // Send EOF to child's stdin
+        close(stdin_pipe[1]);
 
-        // Read the CGI script's output from its stdout
         std::ostringstream output;
         char buffer[4096];
         ssize_t bytesRead;
-        while ((bytesRead = read(stdout_pipe[0], buffer, sizeof(buffer))) > 0)
+
+        // Read CGI output asynchronously (optional; can be improved using poll/select if needed)
+        int status = 0;
+        time_t start_time = time(NULL);
+        const int timeout = 5; // seconds
+
+        while (42)
         {
-            output.write(buffer, bytesRead);
+            pid_t result = waitpid(pid, &status, WNOHANG);
+            if (result == 0)
+            {
+                // Still running
+                if (time(NULL) - start_time >= timeout)
+                {
+                    kill(pid, SIGKILL);
+                    waitpid(pid, &status, 0); // cleanup zombie
+                    close(stdout_pipe[0]);
+                    throw std::runtime_error("CGI script timed out");
+                }
+                usleep(100000); // sleep 100ms
+            }
+            else if (result > 0)
+            {
+                // Process exited, read output
+                while ((bytesRead = read(stdout_pipe[0], buffer, sizeof(buffer))) > 0)
+                {
+                    output.write(buffer, bytesRead);
+                }
+                break;
+            }
+            else
+            {
+                close(stdout_pipe[0]);
+                throw std::runtime_error("waitpid() failed");
+            }
         }
+
         close(stdout_pipe[0]);
 
-        // Wait for the child process to terminate
-        int status;
-        waitpid(pid, &status, 0);
-
-        // You might want to check the exit status of the child here
-        // to handle CGI errors more gracefully.
         if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
         {
-            // CGI script exited with an error
-            // Consider logging this or returning a 500 error
-            perror("CGI script error");
+            throw std::runtime_error("CGI script exited with error");
         }
 
         return output.str();
@@ -214,7 +203,7 @@ std::map<std::string, std::string> CGIHandler::prepareCGIEnv(const requestParser
     return env;
 }
 
-std::string CGIHandler::handleCGI(const std::string &scriptPath, const requestParser &request, std::string interpreter)
+std::string CGIHandler::handleCGI(const std::string &scriptPath, const requestParser &request, std::string interpreter, int client_fd)
 {
     Response response;
     std::map<std::string, std::string> env = CGIHandler::prepareCGIEnv(request);
@@ -285,7 +274,17 @@ std::string CGIHandler::handleCGI(const std::string &scriptPath, const requestPa
     }
     catch (const std::exception &e)
     {
-        response.setStatus(500, "Internal Server Error");
+        if(errno == ECHILD)
+        {
+            send_error_response(client_fd, 504, "Gateway Timeout", response.serverConfig);
+            response.setStatus(504, "Gateway Timeout");
+            // No child process, likely a timeout or similar issue
+        }
+        else
+        {
+            send_error_response(client_fd, 500, "Internal Server Error", response.serverConfig);
+            response.setStatus(500, "Internal Server Error");
+        }
         std::string err = "CGI Error: ";
         err += e.what();
         response.setBody(err);

@@ -448,7 +448,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
     }
 
     // Determine root
-    std::string root = location ? location->root : serverConfig.root;
+    std::string root = (location && !location->root.empty()) ? location->root : serverConfig.root;
     if (root.empty())
     {
         send_error_response(client_fd, 500, "Root not specified", serverConfig);
@@ -486,7 +486,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
             const std::string &interpreter = it->second;
 
             CGIHandler cgiHandler;
-            std::string cgi_response = cgiHandler.handleCGI(full_path, req, interpreter);
+            std::string cgi_response = cgiHandler.handleCGI(full_path, req, interpreter, client_fd);
 
             if (cgi_response.empty())
             {
@@ -738,11 +738,8 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
     case 500:
         status_text = "Internal Server Error";
         break;
-    case 501:
-        status_text = "Not Implemented";
-        break;
-    case 502:
-        status_text = "Bad Gateway";
+    case 504:
+        status_text = "Gateway Timeout";
         break;
     default:
         status_text = "Error";
@@ -772,6 +769,8 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
             error_page_path = "./www/epages/413.html";
         else if (status_code == 302)
             error_page_path = "./www/epages/302.html";
+        else if (status_code == 504)
+            error_page_path = "./www/epages/504.html";
         else
             error_page_path = "./www/epages/500.html";
     }

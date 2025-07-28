@@ -15,7 +15,7 @@ public:
 
     // Execute the CGI script with given env and request body (for POST)
     std::string execute(const std::string &scriptPath, const requestParser &request, const std::map<std::string, std::string> &envVars, const std::string &interpreter);
-    std::string handleCGI(const std::string &scriptPath, const requestParser &request, std::string interpreter);
+    std::string handleCGI(const std::string &scriptPath, const requestParser &request, std::string interpreter, int client_fd);
     static std::map<std::string, std::string> prepareCGIEnv(const requestParser &request);
 
 private:
