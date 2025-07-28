@@ -239,7 +239,7 @@ Response Response::buildGetResponse(const requestParser &request, const std::str
 
         if (!serverConfig.locations.empty() && !serverConfig.locations[0].index.empty())
         {
-            std::string indexPath = fullPath + serverConfig.locations[0].index[0];
+            std::string indexPath = fullPath + serverConfig.locations[0].index;
             if (fileExists(indexPath))
             {
                 fullPath = indexPath;
