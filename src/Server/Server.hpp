@@ -5,6 +5,7 @@
 #include <arpa/inet.h> // sockaddr
 #include <fcntl.h>     // F_GETFL ..
 #include <sys/stat.h>
+#include <netdb.h> // accept
 #include "./Parser/ConfigParser.hpp"
 #include "./Client/Client.hpp"
 #include "../Request/Request.hpp"

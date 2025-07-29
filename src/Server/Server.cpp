@@ -42,12 +42,30 @@ int create_server_socket(const std::string &host, int port)
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     // addr.sin_addr.s_addr = inet_addr(host.c_str());CHANGED TO THE ABOVE
-    if (host == "0.0.0.0" || host.empty())
+    if (host == "0.0.0.0")
         addr.sin_addr.s_addr = htonl(INADDR_ANY);
     else
     {
-        addr.sin_addr.s_addr = inet_addr(host.c_str());
+        struct addrinfo hints;
+        struct addrinfo *result;
+        std::memset(&hints, 0, sizeof(hints));
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+
+        int ret = getaddrinfo(host.c_str(), NULL, &hints, &result);
+        if(ret != 0)
+        {
+            std::cerr << "getaddrinfo: " << gai_strerror(ret);
+            close(server_fd);
+            return -1;
+        }
+        struct sockaddr_in* ipv4 = (struct sockaddr_in*) result->ai_addr;
+        addr.sin_addr = ipv4->sin_addr;
+
+        freeaddrinfo(result);
     }
+
+
 
     if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
     {
