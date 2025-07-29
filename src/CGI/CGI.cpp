@@ -274,14 +274,21 @@ std::string CGIHandler::handleCGI(const std::string &scriptPath, const requestPa
     }
     catch (const std::exception &e)
     {
-        if(errno == ECHILD)
+        if(e.what() == std::string("CGI script timed out"))
         {
+            Utils::log("CGI script timed out for " + scriptPath, AnsiColor::BOLD_RED);
             send_error_response(client_fd, 504, "Gateway Timeout", response.serverConfig);
             response.setStatus(504, "Gateway Timeout");
+        }
+        else if (e.what() == std::string("CGI script exited with error"))
+        {
+            send_error_response(client_fd, 500, "Internal Server Error", response.serverConfig);
+            response.setStatus(500, "Internal Server Error");
             // No child process, likely a timeout or similar issue
         }
         else
         {
+            Utils::log("CGI execution failed for " + scriptPath + ": " + e.what(), AnsiColor::BOLD_RED);
             send_error_response(client_fd, 500, "Internal Server Error", response.serverConfig);
             response.setStatus(500, "Internal Server Error");
         }
