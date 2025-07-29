@@ -533,7 +533,7 @@ ConfigParser::Listen ConfigParser::parseListen(const std::string &listen_value)
             throw std::runtime_error("Invalid Port number in listen value: " + port);
 
         if (host == "localhost")
-            return Listen("0.0.0.0", port);
+            return Listen("127.0.0.1", port);
 
         if (!isValidIPv4(host))
             throw std::runtime_error("Invalid IP address format in listen value: " + host);
@@ -663,9 +663,7 @@ void ConfigParser::parseFile(const std::string &filename)
 {
     std::ifstream file(filename.c_str());
     if (!file.is_open())
-    {
         throw std::runtime_error("Cannot open file: " + filename);
-    }
 
     std::ostringstream buffer;
     buffer << file.rdbuf();
@@ -673,9 +671,7 @@ void ConfigParser::parseFile(const std::string &filename)
     file.close();
 
     if (content.empty())
-    {
         throw std::runtime_error("Configuration file is empty: " + filename);
-    }
 
     parse();
 }
