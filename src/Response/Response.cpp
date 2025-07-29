@@ -200,7 +200,7 @@ Response Response::buildAutoindexResponse(const std::string &htmlContent)
 
     response.setStatus(200, "OK");
     std::stringstream headers;
-    headers << "HTTP/1.1 200 OK\r\n";
+    headers << "HTTP/1.0 200 OK\r\n";
     headers << "Content-Type: text/html\r\n";
     headers << "Content-Length: " << htmlContent.size() << "\r\n";
     headers << "Connection: close\r\n";

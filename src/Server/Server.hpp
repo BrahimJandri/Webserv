@@ -3,15 +3,14 @@
 #include <dirent.h> // opendit
 #include <sys/epoll.h>
 #include <arpa/inet.h> // sockaddr
-#include <fcntl.h> // F_GETFL ..
-#include <sys/stat.h> 
+#include <fcntl.h>     // F_GETFL ..
+#include <sys/stat.h>
 #include "./Parser/ConfigParser.hpp"
 #include "./Client/Client.hpp"
 #include "../Request/Request.hpp"
 #include "../Response/Response.hpp"
 #include "../Utils/AnsiColor.hpp"
 #include "../Utils/Logger.hpp"
-
 
 class Server
 {
@@ -37,7 +36,6 @@ public:
     void closeClientConnection(int client_fd);
     int prepareResponse(const requestParser &req, int client_fd);
     void Cleanup();
-
 };
 
 int create_server_socket(const std::string &host, int port);
@@ -48,9 +46,7 @@ void send_http_headers(int client_fd, const std::string &status_line,
                        const std::string &content_type, size_t content_length,
                        const std::string &connection_header);
 bool isDirectory(const std::string &path);
-
 std::string generate_autoindex(const std::string &dir_path, const std::string &uri);
-void send_autoindex_response(int client_fd, const std::string &html);
 const ConfigParser::LocationConfig *findMatchingLocation(const std::vector<ConfigParser::LocationConfig> &locations, const std::string &requestPath);
 void normalize_path(std::string &path);
 std::string get_file_extension(const std::string &filename);

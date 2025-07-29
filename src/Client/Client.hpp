@@ -15,8 +15,6 @@ private:
     std::string _response;  // Response to be sent
     size_t _content_length;
 
-
-
 public:
     Client();
     Client(int fd);

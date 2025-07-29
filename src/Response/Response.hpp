@@ -36,7 +36,6 @@ public:
     const std::string &getBody() const;
     const std::string &getHttpVersion() const;
 
-    void handleCGI(const std::string &scriptPath, const requestParser &request, std::string interpret);
     std::string toString() const;
     static Response buildFileResponse(const std::string &filePath, const ConfigParser::ServerConfig &serverConfig, int client_fd);
 

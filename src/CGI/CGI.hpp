@@ -4,8 +4,8 @@
 #include <cstring>
 #include "../Request/Request.hpp"   // Assuming requestParser is defined in this header
 #include "../Response/Response.hpp" // For Response class
-#include "../Client/Client.hpp" // For Client class
-class Request; // Forward declaration if you want to use Request in prepareCGIEnv
+#include "../Client/Client.hpp"     // For Client class
+class Request;                      // Forward declaration if you want to use Request in prepareCGIEnv
 
 class CGIHandler
 {

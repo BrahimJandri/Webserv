@@ -110,7 +110,7 @@ void Server::setupServers(const ConfigParser &parser)
                 }
             }
 
-            serverConfigMap[server_fd] = matchedConfigs;
+            serverConfigMap[server_fd] = matchedConfigs; // Map server_fd to its configurations
 
             // Register with epoll
             struct epoll_event ev;
@@ -175,7 +175,7 @@ void Server::acceptNewConnection(int server_fd)
 
     // Store client
     clients[client_fd] = new Client(client_fd);
-    clientToServergMap[client_fd] = serverConfigMap[server_fd][0];
+    clientToServergMap[client_fd] = serverConfigMap[server_fd][0]; // Assuming the first config is the one to use
 
     Utils::log("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" + to_string_c98(ntohs(client_addr.sin_port)) + " (fd: " + to_string_c98(client_fd) + ")", AnsiColor::BOLD_GREEN);
 }
@@ -296,15 +296,6 @@ const ConfigParser::LocationConfig *findMatchingLocation(const std::vector<Confi
     return bestMatch;
 }
 
-void send_redirect_response(int client_fd, int status_code, const std::string &url)
-{
-    std::ostringstream oss;
-    oss << "HTTP/1.1 " << status_code << " Moved\r\n"
-        << "Location: " << url << "\r\n"
-        << "Content-Length: 0\r\n\r\n";
-    send(client_fd, oss.str().c_str(), oss.str().length(), 0);
-}
-
 bool isDirectory(const std::string &path)
 {
     struct stat statbuf;
@@ -317,15 +308,6 @@ std::string get_file_extension(const std::string &filename)
     if (dot == std::string::npos)
         return "";
     return filename.substr(dot);
-}
-
-void send_autoindex_response(int client_fd, const std::string &html)
-{
-    Response response;
-    response.addHeader("Content-Type", "text/html");
-    response.setBody(html);
-    std::string res_str = response.toString();
-    send(client_fd, res_str.c_str(), res_str.size(), 0);
 }
 
 std::string escape_html(const std::string &input)
@@ -495,6 +477,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
             }
 
             clients[client_fd]->setResponse(cgi_response);
+            Utils::log("CGI executed for " + full_path + " method: " + method, AnsiColor::BOLD_YELLOW);
             return 0;
         }
     }
@@ -601,6 +584,7 @@ void Server::handleClientWrite(int client_fd)
 
     write(client_fd, response.c_str(), response.size()); // Send response
     Utils::log("Sending response to client fd: " + to_string_c98(client_fd), AnsiColor::BOLD_BLUE);
+    client->clearResponse(); // Clear response after sending
     closeClientConnection(client_fd);
 }
 
