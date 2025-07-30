@@ -53,19 +53,17 @@ int create_server_socket(const std::string &host, int port)
         hints.ai_socktype = SOCK_STREAM;
 
         int ret = getaddrinfo(host.c_str(), NULL, &hints, &result);
-        if(ret != 0)
+        if (ret != 0)
         {
             std::cerr << "getaddrinfo: " << gai_strerror(ret);
             close(server_fd);
             return -1;
         }
-        struct sockaddr_in* ipv4 = (struct sockaddr_in*) result->ai_addr;
+        struct sockaddr_in *ipv4 = (struct sockaddr_in *)result->ai_addr;
         addr.sin_addr = ipv4->sin_addr;
 
         freeaddrinfo(result);
     }
-
-
 
     if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
     {
@@ -432,8 +430,19 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
     // Handle redirection
     if (location && !location->return_directive.empty())
     {
-        send_error_response(client_fd, 302, "Moved Temporarily", serverConfig);
-        return -1;
+        int status_code = location->return_directive.begin()->first;
+        const std::string &location_url = location->return_directive.begin()->second;
+
+        if (status_code >= 300 && status_code < 400)
+        {
+            send_redirect_response(client_fd, status_code, location_url);
+            return -1; // Stop further processing
+        }
+        else
+        {
+            send_error_response(client_fd, status_code, "Redirect", serverConfig);
+            return -1;
+        }
     }
 
     // Check method
@@ -815,4 +824,51 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
     send_http_headers(client_fd, "HTTP/1.1 " + to_string_c98(status_code) + " " + status_text,
                       "text/html", response_body.length());
     write(client_fd, response_body.c_str(), response_body.length());
+}
+
+void send_redirect_response(int client_fd, int status_code, const std::string &location_url)
+{
+    std::string status_text;
+
+    // Map status code to appropriate reason phrase
+    switch (status_code)
+    {
+    case 301:
+        status_text = "Moved Permanently";
+        break;
+    case 302:
+        status_text = "Found";
+        break;
+    case 303:
+        status_text = "See Other";
+        break;
+    case 307:
+        status_text = "Temporary Redirect";
+        break;
+    case 308:
+        status_text = "Permanent Redirect";
+        break;
+    default:
+        status_text = "Redirect";
+        break;
+    }
+
+    // Create a simple HTML body for browsers that don't follow redirects automatically
+    std::string response_body = "<!DOCTYPE html><html><head><title>" + to_string_c98(status_code) + " " + status_text +
+                                "</title></head><body><h1>" + status_text + "</h1><p>The document has moved <a href=\"" +
+                                location_url + "\">here</a>.</p></body></html>";
+
+    // Build the complete HTTP response
+    std::ostringstream oss;
+    oss << "HTTP/1.1 " << status_code << " " << status_text << "\r\n"
+        << "Location: " << location_url << "\r\n"
+        << "Content-Type: text/html\r\n"
+        << "Content-Length: " << response_body.length() << "\r\n"
+        << "Connection: close\r\n\r\n"
+        << response_body;
+
+    std::string response = oss.str();
+    write(client_fd, response.c_str(), response.length());
+
+    Utils::log("Sent " + to_string_c98(status_code) + " redirect to: " + location_url, AnsiColor::BOLD_CYAN);
 }

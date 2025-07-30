@@ -38,7 +38,7 @@ void ConfigParser::skipComments()
                 pos++;
         }
         else
-            break; 
+            break;
     }
 }
 
@@ -103,9 +103,9 @@ std::string ConfigParser::parseDirectiveValue()
     {
         // Check if this token looks like a directive keyword (this would indicate missing semicolon)
         if (!value.empty() && (token == "server_name" || token == "listen" || token == "error_page" ||
-                                       token == "limit_client_body_size" || token == "autoindex" || token == "location" ||
-                                       token == "root" || token == "index" || token == "allowed_methods" || token == "cgi_map" ||
-                                       token == "return"))
+                               token == "limit_client_body_size" || token == "autoindex" || token == "location" ||
+                               token == "root" || token == "index" || token == "allowed_methods" || token == "cgi_map" ||
+                               token == "return"))
         {
             throw std::runtime_error("Missing semicolon after directive value '" + value + "' before '" + token + "' at line " + intToString(line_number));
         }
@@ -189,7 +189,7 @@ size_t ConfigParser::parseSizeToBytes(const std::string &input)
     if (*end != '\0')
         throw std::invalid_argument("Invalid number in size: " + numberStr);
 
-    // Normalize unit to uppercase 
+    // Normalize unit to uppercase
     for (size_t j = 0; j < unitStr.size(); ++j)
         unitStr[j] = std::toupper(unitStr[j]);
 
@@ -202,7 +202,7 @@ size_t ConfigParser::parseSizeToBytes(const std::string &input)
     else if (unitStr == "G")
         multiplier = 1024 * 1024 * 1024;
     else if (unitStr.empty())
-        return static_cast<size_t>(number); 
+        return static_cast<size_t>(number);
     else
         throw std::invalid_argument("Invalid unit in size: " + unitStr);
 
@@ -317,26 +317,27 @@ void ConfigParser::parseLocation(LocationConfig &location)
                 throw std::runtime_error("Duplicate 'return' directive in location block");
 
             std::vector<std::string> return_value = parseMultipleValues();
+            if (return_value.empty())
+                throw std::runtime_error("'return' directive cannot be empty at line " + intToString(line_number));
 
             int return_code = std::atoi(return_value[0].c_str());
             if (return_code < 100 || return_code > 599)
                 throw std::runtime_error("Invalid return code '" + return_value[0] + "' in 'return' directive at line " + intToString(line_number));
-            
-            std::string return_path = return_value[1];
-            if(return_value.size() > 1)
-            {
-                char *endptr;
-                std::strtol(return_value[1].c_str(), &endptr, 10);
-                if (*endptr == '\0') // It was a number
-                    throw std::runtime_error("Expected a file path for 'error_page' directive at line " + intToString(line_number));
 
-                location.return_directive[return_code] = return_path;
+            std::string return_path = "";
+            if (return_value.size() > 1)
+            {
+                return_path = return_value[1];
+
+                // Ensure return_path is not a number
+                char *endptr;
+                std::strtol(return_path.c_str(), &endptr, 10);
+                if (*endptr == '\0') // It's a number, not a valid path
+                    throw std::runtime_error("Expected a path or URL for 'return' directive at line " + intToString(line_number));
             }
 
-            location.return_directive[return_code] = "";
-
-            // if (location.return_directive.empty() || location.return_directive.find(" ") != std::string::npos)
-            //     throw std::runtime_error("'return' directive cannot be empty at line " + intToString(line_number));
+            // Store the directive
+            location.return_directive[return_code] = return_path;
         }
         else
             // Skip unknown directive
@@ -724,9 +725,9 @@ size_t ConfigParser::getListenCount() const
     return ListenCount;
 }
 
-//used only for debuging
-// void ConfigParser::printPos()
-// {
-//     std::cout << pos << "---> ";
-//     std::cout << line_number << std::endl;
-// }
+// used only for debuging
+//  void ConfigParser::printPos()
+//  {
+//      std::cout << pos << "---> ";
+//      std::cout << line_number << std::endl;
+//  }
