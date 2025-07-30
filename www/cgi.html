@@ -227,7 +227,9 @@
             class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Session
             Management</a></li>
         <li><a href="cgi.html" class="nav-link text-blue-600 dark:text-blue-400 underline">Unified CGI Test</a></li>
-          <li><a href="cookies.html" class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Cookies</a></li>
+        <li><a href="cookies.html"
+            class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Cookies</a>
+        </li>
         <li><a href="upload.html"
             class="nav-link text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">File
             Upload & Delete</a></li>
@@ -571,6 +573,13 @@
           body: JSON.stringify({ alg, cipher })
         });
 
+        // ✅ Handle HTTP errors with server-side HTML (e.g., error pages)
+        if (!res.ok) {
+          const errorHtml = await res.text();
+          document.documentElement.innerHTML = errorHtml;
+          return;
+        }
+
         const text = await res.text();
 
         try {
@@ -584,8 +593,10 @@
       } catch (err) {
         resultBox.textContent = "Error: " + err.message;
         showMessage('Error during encoding.', 'error');
+        window.location.href = '/error.html'; // fallback client-side redirect
       }
     });
+
 
     // CGI form handlers
     document.getElementById('shCgiForm').addEventListener('submit', e => handleCgiFormSubmit(e, 'shCgiResponse'));
