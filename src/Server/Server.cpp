@@ -712,6 +712,7 @@ std::string to_string_c98(size_t val)
 
 void send_error_response(int client_fd, int status_code, const std::string &message, const ConfigParser::ServerConfig &serverConfig)
 {
+
     std::string status_text;
     std::string error_page_path;
 
@@ -751,7 +752,7 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
     std::map<int, std::string>::const_iterator it = serverConfig.error_pages.find(status_code);
     if (it != serverConfig.error_pages.end())
     {
-        error_page_path = serverConfig.locations.empty() ? it->second : serverConfig.locations[0].root + it->second;
+        error_page_path = serverConfig.root + it->second; // Use server root to construct full path
     }
     else
     {
