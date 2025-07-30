@@ -316,31 +316,10 @@ void ConfigParser::parseLocation(LocationConfig &location)
             if (!location.return_directive.empty())
                 throw std::runtime_error("Duplicate 'return' directive in location block");
 
-            std::vector<std::string> return_value = parseMultipleValues();
+            std::string return_value = parseDirectiveValue();
             if (return_value.empty())
                 throw std::runtime_error("'return' directive cannot be empty at line " + intToString(line_number));
-
-            int return_code = std::atoi(return_value[0].c_str());
-            if (return_code < 100 || return_code > 599)
-                throw std::runtime_error("Invalid return code '" + return_value[0] + "' in 'return' directive at line " + intToString(line_number));
-
-            if (return_value.size() < 2)
-                throw std::runtime_error("Missing return URL/path for 'return' directive at line " + intToString(line_number));
-
-            std::string return_path = return_value[1];
-
-            // Ensure return_path is not just a number
-            char *endptr;
-            std::strtol(return_path.c_str(), &endptr, 10);
-            if (*endptr == '\0') // It's a pure number
-                throw std::runtime_error("Expected a path or URL for 'return' directive at line " + intToString(line_number));
-
-            // Reject empty string
-            if (return_path.empty())
-                throw std::runtime_error("Return path cannot be empty in 'return' directive at line " + intToString(line_number));
-
-            // Store the directive
-            location.return_directive[return_code] = return_path;
+            location.return_directive = return_value;
         }
 
         else

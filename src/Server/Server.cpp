@@ -430,19 +430,9 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
     // Handle redirection
     if (location && !location->return_directive.empty())
     {
-        int status_code = location->return_directive.begin()->first;
-        const std::string &location_url = location->return_directive.begin()->second;
-
-        if (status_code >= 300 && status_code < 400)
-        {
-            send_redirect_response(client_fd, status_code, location_url);
-            return -1; // Stop further processing
-        }
-        else
-        {
-            send_error_response(client_fd, status_code, "Redirect", serverConfig);
-            return -1;
-        }
+        const std::string &location_url = location->return_directive;
+        send_redirect_response(client_fd, 302, location_url, "Found");
+        return -1; // Stop further processing
     }
 
     // Check method
@@ -826,33 +816,8 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
     write(client_fd, response_body.c_str(), response_body.length());
 }
 
-void send_redirect_response(int client_fd, int status_code, const std::string &location_url)
+void send_redirect_response(int client_fd, int status_code, const std::string &location_url, const std::string &status_text)
 {
-    std::string status_text;
-
-    // Map status code to appropriate reason phrase
-    switch (status_code)
-    {
-    case 301:
-        status_text = "Moved Permanently";
-        break;
-    case 302:
-        status_text = "Found";
-        break;
-    case 303:
-        status_text = "See Other";
-        break;
-    case 307:
-        status_text = "Temporary Redirect";
-        break;
-    case 308:
-        status_text = "Permanent Redirect";
-        break;
-    default:
-        status_text = "Redirect";
-        break;
-    }
-
     // Create a simple HTML body for browsers that don't follow redirects automatically
     std::string response_body = "<!DOCTYPE html><html><head><title>" + to_string_c98(status_code) + " " + status_text +
                                 "</title></head><body><h1>" + status_text + "</h1><p>The document has moved <a href=\"" +

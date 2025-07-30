@@ -50,5 +50,5 @@ bool isDirectory(const std::string &path);
 std::string generate_autoindex(const std::string &dir_path, const std::string &uri);
 const ConfigParser::LocationConfig *findMatchingLocation(const std::vector<ConfigParser::LocationConfig> &locations, const std::string &requestPath);
 void normalize_path(std::string &path);
-void send_redirect_response(int client_fd, int status_code, const std::string& location_url);
+void send_redirect_response(int client_fd, int status_code, const std::string& location_url, const std::string& status_text);
 std::string get_file_extension(const std::string &filename);
