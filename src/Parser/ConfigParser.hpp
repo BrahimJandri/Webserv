@@ -22,7 +22,7 @@ public:
         std::string index;
         std::vector<std::string> allowed_methods;
         std::map<std::string, std::string> cgi;
-        std::string return_directive;
+        std::map<int, std::string> return_directive;
         bool autoindex;
 
         LocationConfig();

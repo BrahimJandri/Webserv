@@ -21,9 +21,8 @@ void ConfigParser::skipWhitespace()
     while (pos < content.length() && std::isspace(content[pos]))
     {
         if (content[pos] == '\n')
-        {
             line_number++;
-        }
+
         pos++;
     }
 }
@@ -35,17 +34,11 @@ void ConfigParser::skipComments()
         skipWhitespace();
         if (pos < content.length() && content[pos] == '#')
         {
-            // Skip the entire comment line
             while (pos < content.length() && content[pos] != '\n')
-            {
                 pos++;
-            }
-            // Continue the loop to check for more comments
         }
         else
-        {
-            break; // No more comments, exit the loop
-        }
+            break; 
     }
 }
 
@@ -53,9 +46,7 @@ std::string ConfigParser::parseToken()
 {
     skipComments();
     if (pos >= content.length())
-    {
         return "ERROR";
-    }
 
     std::string token;
 
@@ -67,16 +58,13 @@ std::string ConfigParser::parseToken()
         while (pos < content.length() && content[pos] != quote)
         {
             if (content[pos] == '\\' && pos + 1 < content.length())
-            {
                 pos++; // Skip escape character
-            }
+
             token += content[pos];
             pos++;
         }
         if (pos < content.length())
-        {
             pos++; // Skip closing quote
-        }
         return token;
     }
 
@@ -111,12 +99,10 @@ std::string ConfigParser::parseDirectiveValue()
     std::string value;
     std::string token;
     // printPos();Rachid for debuging
-    while ((token = parseToken()) != "")
+    while ((token = parseToken()) != "ERROR")
     {
-        // std::cout << token << std::endl; // For deubging
-
         // Check if this token looks like a directive keyword (this would indicate missing semicolon)
-        if (value.empty() == false && (token == "server_name" || token == "listen" || token == "error_page" ||
+        if (!value.empty() && (token == "server_name" || token == "listen" || token == "error_page" ||
                                        token == "limit_client_body_size" || token == "autoindex" || token == "location" ||
                                        token == "root" || token == "index" || token == "allowed_methods" || token == "cgi_map" ||
                                        token == "return"))
@@ -125,24 +111,18 @@ std::string ConfigParser::parseDirectiveValue()
         }
 
         if (!value.empty())
-        {
             value += " ";
-        }
+
         value += token;
 
         skipComments();
         if (pos < content.length() && content[pos] == ';')
-        {
             break;
-        }
 
         // Check if we reached end of block or end of file without semicolon
         if (pos >= content.length() || content[pos] == '}' || content[pos] == '{')
-        {
             throw std::runtime_error("Missing semicolon after directive value '" + value + "' at line " + intToString(line_number));
-        }
     }
-
     return value;
 }
 
@@ -151,7 +131,7 @@ std::vector<std::string> ConfigParser::parseMultipleValues()
     std::vector<std::string> values;
     std::string token;
 
-    while ((token = parseToken()) != "")
+    while ((token = parseToken()) != "ERROR")
     {
         // Check if this token looks like a directive keyword (this would indicate missing semicolon)
         if (!values.empty() && (token == "server_name" || token == "listen" || token == "error_page" ||
@@ -165,9 +145,7 @@ std::vector<std::string> ConfigParser::parseMultipleValues()
 
         skipComments();
         if (pos < content.length() && content[pos] == ';')
-        {
             break;
-        }
 
         // Check if we reached end of block or end of file without semicolon
         if (pos >= content.length() || content[pos] == '}' || content[pos] == '{')
@@ -198,9 +176,6 @@ bool ConfigParser::isAtBlockBoundary()
 
 size_t ConfigParser::parseSizeToBytes(const std::string &input)
 {
-    if (input.empty())
-        throw std::invalid_argument("Empty size string");
-
     // Find where the numeric part ends
     size_t i = 0;
     while (i < input.size() && (isdigit(input[i]) || input[i] == '.'))
@@ -209,17 +184,16 @@ size_t ConfigParser::parseSizeToBytes(const std::string &input)
     std::string numberStr = input.substr(0, i);
     std::string unitStr = input.substr(i);
 
-    // Convert number
     char *end = NULL;
     double number = std::strtod(numberStr.c_str(), &end);
     if (*end != '\0')
         throw std::invalid_argument("Invalid number in size: " + numberStr);
 
-    // Normalize unit to uppercase (C++98-style loop)
+    // Normalize unit to uppercase 
     for (size_t j = 0; j < unitStr.size(); ++j)
         unitStr[j] = std::toupper(unitStr[j]);
 
-    size_t multiplier = 1; // default: bytes
+    size_t multiplier = 1;
 
     if (unitStr == "K")
         multiplier = 1024;
@@ -228,7 +202,7 @@ size_t ConfigParser::parseSizeToBytes(const std::string &input)
     else if (unitStr == "G")
         multiplier = 1024 * 1024 * 1024;
     else if (unitStr.empty())
-        return static_cast<size_t>(number); // No unit → assume already in bytes
+        return static_cast<size_t>(number); 
     else
         throw std::invalid_argument("Invalid unit in size: " + unitStr);
 
@@ -295,9 +269,8 @@ void ConfigParser::parseLocation(LocationConfig &location)
             }
 
             if (methods.empty())
-            {
                 throw std::runtime_error("'allowed_methods' directive cannot be empty in location block at line " + intToString(line_number));
-            }
+
             location.allowed_methods = methods;
         }
         else if (directive == "autoindex")
@@ -343,9 +316,27 @@ void ConfigParser::parseLocation(LocationConfig &location)
             if (!location.return_directive.empty())
                 throw std::runtime_error("Duplicate 'return' directive in location block");
 
-            location.return_directive = parseDirectiveValue();
-            if (location.return_directive.empty() || location.return_directive.find(" ") != std::string::npos)
-                throw std::runtime_error("'return' directive cannot be empty at line " + intToString(line_number));
+            std::vector<std::string> return_value = parseMultipleValues();
+
+            int return_code = std::atoi(return_value[0].c_str());
+            if (return_code < 100 || return_code > 599)
+                throw std::runtime_error("Invalid return code '" + return_value[0] + "' in 'return' directive at line " + intToString(line_number));
+            
+            std::string return_path = return_value[1];
+            if(return_value.size() > 1)
+            {
+                char *endptr;
+                std::strtol(return_value[1].c_str(), &endptr, 10);
+                if (*endptr == '\0') // It was a number
+                    throw std::runtime_error("Expected a file path for 'error_page' directive at line " + intToString(line_number));
+
+                location.return_directive[return_code] = return_path;
+            }
+
+            location.return_directive[return_code] = "";
+
+            // if (location.return_directive.empty() || location.return_directive.find(" ") != std::string::npos)
+            //     throw std::runtime_error("'return' directive cannot be empty at line " + intToString(line_number));
         }
         else
             // Skip unknown directive
@@ -380,9 +371,7 @@ void ConfigParser::parseServer(ServerConfig &server)
         // Check if we're at the end of the block before trying to parse a directive
         skipComments();
         if (pos < content.length() && content[pos] == '}')
-        {
             break;
-        }
 
         directive = parseToken();
         if (directive.empty())
@@ -416,9 +405,7 @@ void ConfigParser::parseServer(ServerConfig &server)
             std::vector<std::string> values = parseMultipleValues();
 
             if (values.size() < 2)
-            {
-                throw std::runtime_error("'error_page' directive requires at least one error code and a page path at line " + intToString(line_number));
-            }
+                throw std::runtime_error("'error_page' directive requires one error code and a page path at line " + intToString(line_number));
 
             std::string error_page = values.back();
 
@@ -426,21 +413,14 @@ void ConfigParser::parseServer(ServerConfig &server)
             char *endptr;
             std::strtol(error_page.c_str(), &endptr, 10);
             if (*endptr == '\0') // It was a number
-            {
                 throw std::runtime_error("Expected a file path for 'error_page' directive at line " + intToString(line_number));
-            }
 
-            for (size_t i = 0; i < values.size() - 1; ++i)
-            {
-                int error_code = std::atoi(values[i].c_str());
+            int error_code = std::atoi(values[0].c_str());
 
-                if (error_code < 100 || error_code > 599)
-                {
-                    throw std::runtime_error("Invalid error code '" + values[i] + "' in 'error_page' directive at line " + intToString(line_number));
-                }
+            if (error_code < 100 || error_code > 599)
+                throw std::runtime_error("Invalid error code '" + values[0] + "' in 'error_page' directive at line " + intToString(line_number));
 
-                server.error_pages[error_code] = error_page;
-            }
+            server.error_pages[error_code] = error_page;
         }
 
         else if (directive == "limit_client_body_size")
@@ -481,11 +461,7 @@ void ConfigParser::parseServer(ServerConfig &server)
             continue; // Skip semicolon check for location block
         }
         else
-        {
-            // Skip unknown
-            throw std::runtime_error("Unknown Directive " + intToString(line_number));
-            parseDirectiveValue();
-        }
+            throw std::runtime_error("Unknown Directive " + directive + " at line " + intToString(line_number));
 
         if (!expectSemicolon())
         {
@@ -554,7 +530,7 @@ bool ConfigParser::isValidPort(const std::string &port)
     if (!isDigitString(port))
         return false;
 
-    int num = atoi(port.c_str());
+    int num = std::atoi(port.c_str());
     if (num < 1 || num > 65535)
         return false;
 
@@ -580,7 +556,7 @@ bool ConfigParser::isValidIPv4(const std::string &ip)
         if (!isDigitString(byte))
             return false;
 
-        int num = atoi(byte.c_str());
+        int num = std::atoi(byte.c_str());
         if (num < 0 || num > 255)
             return false;
 
@@ -676,14 +652,14 @@ void ConfigParser::parseFile(const std::string &filename)
     parse();
 }
 
-void ConfigParser::parseString(const std::string &config_content)
-{
-    content = config_content;
-    pos = 0;
-    line_number = 1;
-    servers.clear();
-    parse();
-}
+// void ConfigParser::parseString(const std::string &config_content)
+// {
+//     content = config_content;
+//     pos = 0;
+//     line_number = 1;
+//     servers.clear();
+//     parse();
+// }
 
 void ConfigParser::parse()
 {
@@ -741,16 +717,16 @@ const std::vector<ConfigParser::ServerConfig> &ConfigParser::getServers() const
 size_t ConfigParser::getListenCount() const
 {
     size_t ListenCount = 0;
+
     for (size_t i = 0; i < servers.size(); i++)
-    {
         ListenCount += servers[i].listen.size();
-    }
+
     return ListenCount;
 }
 
-void ConfigParser::printPos()
-{
-
-    std::cout << pos << "---> ";
-    std::cout << line_number << std::endl;
-}
+//used only for debuging
+// void ConfigParser::printPos()
+// {
+//     std::cout << pos << "---> ";
+//     std::cout << line_number << std::endl;
+// }
