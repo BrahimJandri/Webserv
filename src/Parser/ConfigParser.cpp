@@ -162,7 +162,7 @@ bool ConfigParser::expectSemicolon()
     skipComments();
     if (pos < content.length() && content[pos] == ';')
     {
-        pos++; // consume the semicolon
+        pos++; // Skip the semicolon
         return true;
     }
     return false;
@@ -571,7 +571,7 @@ std::string ConfigParser::intToString(int value)
 
 void ConfigParser::validatePorts()
 {
-    std::set<std::string> global_ports; // track all host:port across all servers
+    std::set<std::string> global_ports; // track all host:port across all servers   
 
     for (size_t i = 0; i < servers.size(); i++)
     {

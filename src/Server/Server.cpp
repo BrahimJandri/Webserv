@@ -41,7 +41,9 @@ int create_server_socket(const std::string &host, int port)
     std::memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
+
     // addr.sin_addr.s_addr = inet_addr(host.c_str());CHANGED TO THE ABOVE
+
     if (host == "0.0.0.0")
         addr.sin_addr.s_addr = htonl(INADDR_ANY);
     else
@@ -85,7 +87,8 @@ int create_server_socket(const std::string &host, int port)
 void Server::setupServers(const ConfigParser &parser)
 {
     const std::vector<ConfigParser::ServerConfig> &serverConfigs = parser.getServers();
-    std::set<std::string> createdHostPorts; // To avoid duplicate sockets
+
+    // std::set<std::string> createdHostPorts; // To avoid duplicate sockets
 
     for (size_t i = 0; i < serverConfigs.size(); ++i)
     {
@@ -98,8 +101,8 @@ void Server::setupServers(const ConfigParser &parser)
             std::string port = listen.port;
             std::string hostPortKey = host + ":" + port;
 
-            if (createdHostPorts.count(hostPortKey))
-                continue; // Skip already created sockets
+            // if (createdHostPorts.count(hostPortKey))
+            //     continue; // Skip already created sockets
 
             Utils::log("Setting up server on " + host + ":" + port, AnsiColor::BOLD_YELLOW);
 
@@ -139,7 +142,7 @@ void Server::setupServers(const ConfigParser &parser)
                 exit(EXIT_FAILURE);
             }
             server_fds.insert(server_fd);
-            createdHostPorts.insert(hostPortKey); // Mark as created
+            // createdHostPorts.insert(hostPortKey); // Mark as created
         }
     }
 }
