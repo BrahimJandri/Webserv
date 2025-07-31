@@ -446,23 +446,10 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
         }
     }
 
-    // Determine root
-    std::string root = (location && !location->root.empty()) ? location->root : serverConfig.root;
-    if (root.empty())
-    {
-        send_error_response(client_fd, 500, "Root not specified", serverConfig);
-        return -1;
-    }
-
-    // Join root + path
+    // Join root + path and normalize it
+    std::string root = serverConfig.root;
     std::string full_path;
-    if (!root.empty() && !path.empty() && root[root.length() - 1] == '/' && path[0] == '/')
-        full_path = root + path.substr(1);
-    else if (!root.empty() && !path.empty() && root[root.length() - 1] != '/' && path[0] != '/')
-        full_path = root + "/" + path;
-    else
-        full_path = root + path;
-
+    full_path = root + path;
     normalize_path(full_path);
 
     // Max body size check
