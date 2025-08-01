@@ -675,13 +675,11 @@ Response Response::buildDeleteResponse(const requestParser &request, const std::
 {
     std::string requestPath = request.getPath();
     std::string fullPath = docRoot;
-    ;
 
     // Prevent dangerous deletions or deleting root/index
     if (requestPath.empty() || requestPath == "/" || requestPath.find("..") != std::string::npos)
     {
-        std::cerr << "ERROR: Invalid delete request path: " << requestPath << std::endl;
-        send_error_response(client_fd, 400, "Bad Request", serverConfig);
+        send_error_response(client_fd, 403, "Forbidden", serverConfig);
         return Response();
     }
 

@@ -18,7 +18,7 @@ char **CGIHandler::buildEnvArray(const std::map<std::string, std::string> &envVa
         std::strcpy(env[i], entry.c_str());
         ++i;
     }
-    env[i] = 0; // nullptr is not available in C++98
+    env[i] = 0;
     return env;
 }
 
@@ -97,7 +97,6 @@ std::string CGIHandler::execute(const std::string &scriptPath, const requestPars
         char buffer[4096];
         ssize_t bytesRead;
 
-        // Read CGI output asynchronously (optional; can be improved using poll/select if needed)
         int status = 0;
         time_t start_time = time(NULL);
         const int timeout = 5; // seconds
