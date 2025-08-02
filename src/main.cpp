@@ -4,16 +4,16 @@
 #include "Server/Server.hpp"
 
 void printBanner() {
-    Utils::log(" █     █░▓█████  ▄▄▄▄     ██████ ▓█████  ██▀███   ██▒   █▓", AnsiColor::RED);
-    Utils::log("▓█░ █ ░█░▓█   ▀ ▓█████▄ ▒██    ▒ ▓█   ▀ ▓██ ▒ ██▒▓██░   █▒", AnsiColor::RED);
-    Utils::log("▒█░ █ ░█ ▒███   ▒██▒ ▄██░ ▓██▄   ▒███   ▓██ ░▄█ ▒ ▓██  █▒░", AnsiColor::RED);
-    Utils::log("░█░ █ ░█ ▒▓█  ▄ ▒██░█▀    ▒   ██▒▒▓█  ▄ ▒██▀▀█▄    ▒██ █░░", AnsiColor::RED);
-    Utils::log("░░██▒██▓ ░▒████▒░▓█  ▀█▓▒██████▒▒░▒████▒░██▓ ▒██▒   ▒▀█░  ", AnsiColor::RED);
-    Utils::log("░ ▓░▒ ▒  ░░ ▒░ ░░▒▓███▀▒▒ ▒▓▒ ▒ ░░░ ▒░ ░░ ▒▓ ░▒▓░   ░ ▐░  ", AnsiColor::RED);
-    Utils::log("  ▒ ░ ░   ░ ░  ░▒░▒   ░ ░ ░▒  ░ ░ ░ ░  ░  ░▒ ░ ▒░   ░ ░░  ", AnsiColor::RED);
-    Utils::log("  ░   ░     ░    ░    ░ ░  ░  ░     ░     ░░   ░      ░░  ", AnsiColor::RED);
-    Utils::log("    ░       ░  ░ ░            ░     ░  ░   ░           ░  ", AnsiColor::RED);
-    Utils::log("                      ░                               ░   ", AnsiColor::RED);
+    Utils::log(" █     █░▓█████  ▄▄▄▄     ██████ ▓█████  ██▀███   ██▒   █▓", AnsiColor::BOLD_BLUE);
+    Utils::log("▓█░ █ ░█░▓█   ▀ ▓█████▄ ▒██    ▒ ▓█   ▀ ▓██ ▒ ██▒▓██░   █▒", AnsiColor::BOLD_BLUE);
+    Utils::log("▒█░ █ ░█ ▒███   ▒██▒ ▄██░ ▓██▄   ▒███   ▓██ ░▄█ ▒ ▓██  █▒░", AnsiColor::BOLD_BLUE);
+    Utils::log("░█░ █ ░█ ▒▓█  ▄ ▒██░█▀    ▒   ██▒▒▓█  ▄ ▒██▀▀█▄    ▒██ █░░", AnsiColor::BOLD_BLUE);
+    Utils::log("░░██▒██▓ ░▒████▒░▓█  ▀█▓▒██████▒▒░▒████▒░██▓ ▒██▒   ▒▀█░  ", AnsiColor::BOLD_BLUE);
+    Utils::log("░ ▓░▒ ▒  ░░ ▒░ ░░▒▓███▀▒▒ ▒▓▒ ▒ ░░░ ▒░ ░░ ▒▓ ░▒▓░   ░ ▐░  ", AnsiColor::BOLD_BLUE);
+    Utils::log("  ▒ ░ ░   ░ ░  ░▒░▒   ░ ░ ░▒  ░ ░ ░ ░  ░  ░▒ ░ ▒░   ░ ░░  ", AnsiColor::BOLD_BLUE);
+    Utils::log("  ░   ░     ░    ░    ░ ░  ░  ░     ░     ░░   ░      ░░  ", AnsiColor::BOLD_BLUE);
+    Utils::log("    ░       ░  ░ ░            ░     ░  ░   ░           ░  ", AnsiColor::BOLD_BLUE);
+    Utils::log("                      ░                               ░   ", AnsiColor::BOLD_BLUE);
 }
 
 int start_server(const std::string &config_path)
@@ -34,9 +34,9 @@ int start_server(const std::string &config_path)
     Utils::log("Found " + Utils::intToString(serverCount) + " server configurations", AnsiColor::BOLD_CYAN);
     parser.printConfig();
     Server server;
-    server.setupServers(parser); // 👈 create sockets + register to epoll
-    server.handleConnections();  // 👈 single loop to handle all
-    server.Cleanup();            // 👈 cleanup all clients and sockets
+    server.setupServers(parser);
+    server.handleConnections();
+    server.Cleanup();
     std::cout << AnsiColor::BOLD_RED << "Webserv stopped" << AnsiColor::RESET << std::endl;
     return 0;
 }

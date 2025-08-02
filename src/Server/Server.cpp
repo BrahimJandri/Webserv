@@ -29,7 +29,6 @@ int create_server_socket(const std::string &host, int port)
     }
 
     int opt = 1;
-    // setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); OLD
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
     {
         perror("setsockopt SO_REUSEADDR");
@@ -42,7 +41,6 @@ int create_server_socket(const std::string &host, int port)
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
 
-    // addr.sin_addr.s_addr = inet_addr(host.c_str());CHANGED TO THE ABOVE
 
     if (host == "0.0.0.0")
         addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -88,7 +86,6 @@ void Server::setupServers(const ConfigParser &parser)
 {
     const std::vector<ConfigParser::ServerConfig> &serverConfigs = parser.getServers();
 
-    // std::set<std::string> createdHostPorts; // To avoid duplicate sockets
 
     for (size_t i = 0; i < serverConfigs.size(); ++i)
     {
@@ -101,9 +98,6 @@ void Server::setupServers(const ConfigParser &parser)
             std::string port = listen.port;
             std::string hostPortKey = host + ":" + port;
 
-            // if (createdHostPorts.count(hostPortKey))
-            //     continue; // Skip already created sockets
-
             Utils::log("Setting up server on " + host + ":" + port, AnsiColor::BOLD_YELLOW);
 
             int server_fd = create_server_socket(host, std::atoi(port.c_str()));
@@ -114,7 +108,6 @@ void Server::setupServers(const ConfigParser &parser)
                 exit(EXIT_FAILURE);
             }
 
-            // Find all ServerConfigs that listen on this host:port
             std::vector<ConfigParser::ServerConfig> matchedConfigs;
             for (size_t k = 0; k < serverConfigs.size(); ++k)
             {
@@ -129,9 +122,8 @@ void Server::setupServers(const ConfigParser &parser)
                 }
             }
 
-            serverConfigMap[server_fd] = matchedConfigs; // Map server_fd to its configurations
+            serverConfigMap[server_fd] = matchedConfigs;
 
-            // Register with epoll
             struct epoll_event ev;
             ev.events = EPOLLIN;
             ev.data.fd = server_fd;
@@ -142,7 +134,6 @@ void Server::setupServers(const ConfigParser &parser)
                 exit(EXIT_FAILURE);
             }
             server_fds.insert(server_fd);
-            // createdHostPorts.insert(hostPortKey); // Mark as created
         }
     }
 }
@@ -166,12 +157,11 @@ void Server::acceptNewConnection(int server_fd)
     if (client_fd == -1)
     {
         if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return; // No more connections to accept
+            return;
         perror("accept");
         return;
     }
 
-    // Set non-blocking
     int flags = fcntl(client_fd, F_GETFL, 0);
     if (flags == -1 || fcntl(client_fd, F_SETFL, flags | O_NONBLOCK) == -1)
     {
@@ -180,7 +170,6 @@ void Server::acceptNewConnection(int server_fd)
         return;
     }
 
-    // Add client to epoll
     struct epoll_event event;
     event.events = EPOLLIN | EPOLLET;
     event.data.fd = client_fd;
@@ -192,24 +181,20 @@ void Server::acceptNewConnection(int server_fd)
         return;
     }
 
-    // Store client
     clients[client_fd] = new Client(client_fd);
-    clientToServergMap[client_fd] = serverConfigMap[server_fd][0]; // Assuming the first config is the one to use
+    clientToServergMap[client_fd] = serverConfigMap[server_fd][0];
 
     Utils::log("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" + to_string_c98(ntohs(client_addr.sin_port)) + " (fd: " + to_string_c98(client_fd) + ")", AnsiColor::BOLD_GREEN);
 }
 
 void Server::closeClientConnection(int client_fd)
 {
-    // Remove from epoll first to avoid getting events for a closed fd
     if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL) == -1)
     {
-        // Ignore errors here, fd might already be removed
         perror("epoll_ctl: client_fd");
         return;
     }
 
-    // Clean up client object if it exists
     std::map<int, Client *>::iterator it = clients.find(client_fd);
     if (it != clients.end())
     {
@@ -217,7 +202,6 @@ void Server::closeClientConnection(int client_fd)
         clients.erase(it);
     }
 
-    // Close the file descriptor
     if (close(client_fd) == -1)
         perror("close");
 
@@ -248,7 +232,7 @@ std::string removePercentEncoded(const std::string &input)
         {
             char decodedChar = hexToChar(input[i + 1], input[i + 2]);
             result += decodedChar;
-            i += 2; // Skip the two hex digits
+            i += 2;
         }
         else
         {
@@ -258,19 +242,15 @@ std::string removePercentEncoded(const std::string &input)
     return result;
 }
 
-// Main normalization function
-void normalize_path(std::string &path) // brahim
+void normalize_path(std::string &path)
 {
     if (path.empty())
         return;
 
-    // Remove encoded characters like %20, %2F etc.
     path = removePercentEncoded(path);
 
-    // Preserve leading slash if present
     bool has_leading_slash = (path[0] == '/');
 
-    // Tokenize by '/', ignoring empty parts
     std::vector<std::string> components;
     std::string token;
     std::istringstream iss(path);
@@ -280,7 +260,6 @@ void normalize_path(std::string &path) // brahim
             components.push_back(token);
     }
 
-    // Rebuild path
     path.clear();
     for (size_t i = 0; i < components.size(); ++i)
     {
@@ -292,7 +271,6 @@ void normalize_path(std::string &path) // brahim
     if (has_leading_slash)
         path = "/" + path;
 
-    // Remove trailing slash unless it's root
     if (path.length() > 1 && path[path.length() - 1] == '/')
         path.erase(path.length() - 1);
 }
@@ -392,7 +370,6 @@ std::string generate_autoindex(const std::string &dir_path, const std::string &u
                 name += "/";
         }
 
-        // Safely encode both the href and visible name
         std::string encoded_name = escape_html(name);
         oss << "<a href=\"" << escape_html(uri + (uri[uri.length() - 1] == '/' ? "" : "/") + name) << "\">"
             << encoded_name << "</a>\n";
@@ -404,22 +381,8 @@ std::string generate_autoindex(const std::string &dir_path, const std::string &u
     return oss.str();
 }
 
-void printRequest(const requestParser &req)
-{
-    std::cout << "Request Method: " << req.getMethod() << std::endl;
-    std::cout << "Request Path: " << req.getPath() << std::endl;
-    std::cout << "HTTP Version: " << req.getHttpVersion() << std::endl;
-    std::map<std::string, std::string> headers = req.getHeaders();
-    std::cout << "Request Headers:" << std::endl;
-    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
-    {
-        std::cout << "  " << it->first << ": " << it->second << std::endl;
-    }
-    std::cout << "Request Body: " << req.getBody() << std::endl;
-    std::cout << "-----------------------------" << std::endl;
-}
 
-int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
+int Server::prepareResponse(const requestParser &req, int client_fd)
 {
     ConfigParser::ServerConfig serverConfig = clientToServergMap[client_fd];
     std::string path = req.getPath();
@@ -427,18 +390,15 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
     if (queryPos != std::string::npos)
         path = path.substr(0, queryPos);
 
-    // printRequest(req);
     const ConfigParser::LocationConfig *location = findMatchingLocation(serverConfig.locations, path);
 
-    // Handle redirection
     if (location && !location->return_directive.empty())
     {
         const std::string &location_url = location->return_directive;
         send_redirect_response(client_fd, 302, location_url, "Found");
-        return -1; // Stop further processing
+        return -1;
     }
 
-    // Check method
     const std::string method = req.getMethod();
     if (location && !location->allowed_methods.empty())
     {
@@ -449,13 +409,11 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
         }
     }
 
-    // Join root + path and normalize it
     std::string root = serverConfig.root;
     std::string full_path;
     full_path = root + path;
     normalize_path(full_path);
 
-    // Max body size check
     size_t max_body_size = serverConfig.limit_client_body_size;
 
     if (!req.getBody().empty() && req.getBody().size() > max_body_size)
@@ -464,7 +422,6 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
         return -1;
     }
 
-    // CGI check
     if (location && !location->cgi.empty())
     {
         std::string file_ext = get_file_extension(full_path);
@@ -489,14 +446,12 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
         }
     }
 
-    // File existence
     if (access(full_path.c_str(), F_OK) == -1)
     {
         send_error_response(client_fd, 404, "Not Found", serverConfig);
         return -1;
     }
 
-    // Build response
     Response response;
     bool autoindex = location ? location->autoindex : false;
     if (method == "GET")
@@ -517,7 +472,6 @@ int Server::prepareResponse(const requestParser &req, int client_fd) // brahim
         return -1;
     }
 
-    // Send response
     std::string response_str = response.toString();
     Utils::log("Method: " + req.getMethod() + ", Path: " + req.getPath() + ", Status Code: " + to_string_c98(response.getStatusCode()), AnsiColor::BOLD_YELLOW);
     clients[client_fd]->setResponse(response_str);
@@ -535,7 +489,6 @@ void Server::handleClientRead(int client_fd)
     char buffer[4096];
     ssize_t bytes_read;
 
-    // Loop to read all available data (Edge-triggered mode: EPOLLET)
     while (true)
     {
         bytes_read = read(client_fd, buffer, sizeof(buffer));
@@ -546,20 +499,15 @@ void Server::handleClientRead(int client_fd)
         }
         else if (bytes_read == 0)
         {
-            // Client disconnected
             closeClientConnection(client_fd);
             return;
         }
         else
         {
-            // read() failed
-            // We're NOT allowed to check errno → assume it's either EAGAIN or fatal
-            // We MUST exit the loop without closing the connection blindly
             break;
         }
     }
 
-    // Process request if we have a full one
     if (clients[client_fd]->processRequest())
     {
         const requestParser &request = clients[client_fd]->getRequest();
@@ -570,7 +518,6 @@ void Server::handleClientRead(int client_fd)
             return;
         }
 
-        // Switch to write mode (EPOLLOUT)
         struct epoll_event event;
         event.events = EPOLLOUT | EPOLLET;
         event.data.fd = client_fd;
@@ -589,9 +536,9 @@ void Server::handleClientWrite(int client_fd)
     Client *client = clients[client_fd];
     const std::string &response = client->getResponse();
 
-    write(client_fd, response.c_str(), response.size()); // Send response
+    write(client_fd, response.c_str(), response.size());
     Utils::log("Sending response to client fd: " + to_string_c98(client_fd), AnsiColor::BOLD_BLUE);
-    client->clearResponse(); // Clear response after sending
+    client->clearResponse();
     closeClientConnection(client_fd);
 }
 
@@ -609,24 +556,20 @@ void Server::handleConnections()
         {
             if (errno == EINTR)
             {
-                // epoll_wait interrupted by signal (e.g., SIGINT/SIGTERM)
-                // This is expected, especially for graceful shutdown
                 continue;
             }
-            perror("epoll_wait"); // Only print real errors
-            break;                // Or handle as appropriate
+            perror("epoll_wait");
+            break;
         }
 
         for (int i = 0; i < num_events; ++i)
         {
             int fd = events[i].data.fd;
 
-            // If the fd is one of the server sockets, accept new connection
             if (server_fds.find(fd) != server_fds.end())
             {
                 acceptNewConnection(fd);
             }
-            // Otherwise, handle client socket events
             else if (events[i].events & EPOLLIN)
             {
                 handleClientRead(fd);
@@ -641,25 +584,23 @@ void Server::handleConnections()
 
 void Server::Cleanup()
 {
-    // Close and delete all client sockets if any
     if (!clients.empty())
     {
         for (std::map<int, Client *>::iterator iter = clients.begin(); iter != clients.end(); ++iter)
         {
-            if (iter->first >= 0) // Valid socket descriptor
+            if (iter->first >= 0)
                 close(iter->first);
 
-            if (iter->second != NULL) // Safe delete
+            if (iter->second != NULL)
                 delete iter->second;
         }
         clients.clear();
     }
-    if (epoll_fd >= 0 && epoll_fd != -1) // Valid epoll fd
+    if (epoll_fd >= 0 && epoll_fd != -1)
     {
         close(epoll_fd);
     }
 
-    // Close all server listening sockets if any
     if (!server_fds.empty())
     {
         for (std::set<int>::iterator it = server_fds.begin(); it != server_fds.end(); ++it)
@@ -670,7 +611,6 @@ void Server::Cleanup()
         server_fds.clear();
     }
 
-    // Clear config maps if they contain entries
     if (!serverConfigMap.empty())
         serverConfigMap.clear();
 
@@ -678,7 +618,6 @@ void Server::Cleanup()
         clientToServergMap.clear();
 }
 
-// Helper function to send an HTTP response (status line and headers only)
 void send_http_headers(int client_fd, const std::string &status_line,
                        const std::string &content_type, size_t content_length,
                        const std::string &connection_header = "close")
@@ -687,7 +626,7 @@ void send_http_headers(int client_fd, const std::string &status_line,
     oss << status_line << "\r\n"
         << "Content-Type: " << content_type << "\r\n"
         << "Content-Length: " << content_length << "\r\n"
-        << "Connection: " << connection_header << "\r\n\r\n"; // End of headers
+        << "Connection: " << connection_header << "\r\n\r\n";
 
     std::string header_response = oss.str();
     write(client_fd, header_response.c_str(), header_response.length());
@@ -706,7 +645,6 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
     std::string status_text;
     std::string error_page_path;
 
-    // Optional: Map status code to text (if you want a proper reason phrase)
     switch (status_code)
     {
     case 302:
@@ -738,15 +676,13 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
         break;
     }
 
-    // Check for custom error page
     std::map<int, std::string>::const_iterator it = serverConfig.error_pages.find(status_code);
     if (it != serverConfig.error_pages.end())
     {
-        error_page_path = serverConfig.root + it->second; // Use server root to construct full path
+        error_page_path = serverConfig.root + it->second;
     }
     else
     {
-        // Default fallback error pages
         if (status_code == 404)
             error_page_path = "./www/epages/404.html";
         else if (status_code == 500)
@@ -767,19 +703,18 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
             error_page_path = "./www/epages/500.html";
     }
 
-    std::string response_body = ""; // initially empty
+    std::string response_body = "";
 
     int error_fd = open(error_page_path.c_str(), O_RDONLY);
     if (error_fd >= 0)
     {
         struct stat st;
-        if (fstat(error_fd, &st) == 0 && st.st_size > 0) // Check if file exists and is not empty
+        if (fstat(error_fd, &st) == 0 && st.st_size > 0)
         {
             response_body.resize(st.st_size);
             ssize_t bytesRead = read(error_fd, &response_body[0], st.st_size);
             if (bytesRead <= 0 || response_body.find_first_not_of(" \t\n\r") == std::string::npos)
             {
-                // File is empty or all whitespace, use fallback
                 response_body = "<!DOCTYPE html><html><head><title>Error " + to_string_c98(status_code) +
                                 "</title></head><body><h1>Error " + to_string_c98(status_code) + ": " +
                                 status_text + "</h1><p>" + message + "</p></body></html>";
@@ -787,7 +722,6 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
         }
         else
         {
-            // File stat failed or file size 0
             response_body = "<!DOCTYPE html><html><head><title>Error " + to_string_c98(status_code) +
                             "</title></head><body><h1>Error " + to_string_c98(status_code) + ": " +
                             status_text + "</h1><p>" + message + "</p></body></html>";
@@ -796,12 +730,10 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
     }
     else
     {
-        // File doesn't exist or can't be opened
         response_body = "<!DOCTYPE html><html><head><title>Error " + to_string_c98(status_code) +
                         "</title></head><body><h1>Error " + to_string_c98(status_code) + ": " +
                         status_text + "</h1><p>" + message + "</p></body></html>";
     }
-    // Send HTTP response
     send_http_headers(client_fd, "HTTP/1.1 " + to_string_c98(status_code) + " " + status_text,
                       "text/html", response_body.length());
     write(client_fd, response_body.c_str(), response_body.length());
@@ -809,12 +741,10 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
 
 void send_redirect_response(int client_fd, int status_code, const std::string &location_url, const std::string &status_text)
 {
-    // Create a simple HTML body for browsers that don't follow redirects automatically
     std::string response_body = "<!DOCTYPE html><html><head><title>" + to_string_c98(status_code) + " " + status_text +
                                 "</title></head><body><h1>" + status_text + "</h1><p>The document has moved <a href=\"" +
                                 location_url + "\">here</a>.</p></body></html>";
 
-    // Build the complete HTTP response
     std::ostringstream oss;
     oss << "HTTP/1.1 " << status_code << " " << status_text << "\r\n"
         << "Location: " << location_url << "\r\n"

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <dirent.h> // opendit
+#include <dirent.h>
 #include <sys/epoll.h>
-#include <arpa/inet.h> // sockaddr
-#include <fcntl.h>     // F_GETFL ..
+#include <arpa/inet.h>
+#include <fcntl.h>
 #include <sys/stat.h>
-#include <netdb.h> // accept
+#include <netdb.h>
 #include "./Parser/ConfigParser.hpp"
 #include "./Client/Client.hpp"
 #include "../Request/Request.hpp"
@@ -20,7 +20,7 @@ private:
     std::map<int, Client *> clients;
     static const int MAX_EVENTS = 64;
     std::set<int> server_fds;
-    std::map<int, std::vector<ConfigParser::ServerConfig> > serverConfigMap; // EDITED BY RACHID
+    std::map<int, std::vector<ConfigParser::ServerConfig> > serverConfigMap;
     std::map<int, ConfigParser::ServerConfig> clientToServergMap;
 
 public:
@@ -50,5 +50,5 @@ bool isDirectory(const std::string &path);
 std::string generate_autoindex(const std::string &dir_path, const std::string &uri);
 const ConfigParser::LocationConfig *findMatchingLocation(const std::vector<ConfigParser::LocationConfig> &locations, const std::string &requestPath);
 void normalize_path(std::string &path);
-void send_redirect_response(int client_fd, int status_code, const std::string& location_url, const std::string& status_text);
+void send_redirect_response(int client_fd, int status_code, const std::string &location_url, const std::string &status_text);
 std::string get_file_extension(const std::string &filename);

@@ -5,8 +5,8 @@
 #include "../Server/Server.hpp"
 #include "../Parser/ConfigParser.hpp"
 
-#include <sstream>   // For std::ostringstream and to_string_c98
-#include <algorithm> // For general utility if needed, not strictly for current methods
+#include <sstream>
+#include <algorithm>
 
 class Response
 {
@@ -15,21 +15,18 @@ private:
     std::string statusMessage;
     std::map<std::string, std::string> _headers;
     std::string _body;
-    std::string _httpVersion; // Typically "HTTP/1.1"
+    std::string _httpVersion;
 
 public:
-    // Constructor and Destructor
     Response();
     ~Response();
 
-    ConfigParser::ServerConfig serverConfig; // To hold server configuration for response handling
-    // Setters
+    ConfigParser::ServerConfig serverConfig;
     void setStatus(int code, const std::string &message);
     void addHeader(const std::string &key, const std::string &value);
     void setBody(const std::string &body);
     void setHttpVersion(const std::string &version);
 
-    // Getters (const correctness is important)
     int getStatusCode() const;
     const std::string &getStatusText() const;
     const std::map<std::string, std::string> &getHeaders() const;

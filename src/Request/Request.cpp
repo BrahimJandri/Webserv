@@ -35,11 +35,11 @@ void requestParser::parseRequest(const std::string &rawRequest)
 			line_iss >> _method >> _path >> _httpVersion;
 		}
 
-		while (std::getline(iss_headers, line) && line != "\r" && !line.empty()) // Loop until empty line or end of stream
+		while (std::getline(iss_headers, line) && line != "\r" && !line.empty())
 		{
 			if (!line.empty() && line[line.length() - 1] == '\r')
 			{
-				line = line.substr(0, line.length() - 1); // Use substr to remove last char
+				line = line.substr(0, line.length() - 1);
 			}
 
 			size_t colon_pos = line.find(':');
@@ -74,7 +74,7 @@ void requestParser::parseRequest(const std::string &rawRequest)
 	{
 		if (!line.empty() && line[line.length() - 1] == '\r')
 		{
-			line = line.substr(0, line.length() - 1); // Use substr
+			line = line.substr(0, line.length() - 1);
 		}
 
 		size_t colon_pos = line.find(':');

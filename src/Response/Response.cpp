@@ -1,16 +1,12 @@
 #include "Response.hpp"
 
-// Constructor
 Response::Response() : statusCode(200), statusMessage("OK"), _httpVersion("HTTP/1.1")
 {
     addHeader("Server", "Webserv/1.0");
     addHeader("Connection", "close");
 }
-// Destructor
 Response::~Response()
 {
-    // No dynamic memory allocated directly within Response object that needs explicit deletion,
-    // as std::string and std::map handle their own memory.
 }
 
 void Response::setStatus(int code, const std::string &message)
@@ -34,7 +30,6 @@ void Response::setHttpVersion(const std::string &version)
     _httpVersion = version;
 }
 
-// Getters
 int Response::getStatusCode() const
 {
     return statusCode;
@@ -60,37 +55,29 @@ const std::string &Response::getHttpVersion() const
     return _httpVersion;
 }
 
-// toString method to assemble the full HTTP response
 std::string Response::toString() const
 {
     std::ostringstream oss;
 
-    // Status Line: HTTP-Version Status-Code Reason-Phrase CR LF
     oss << _httpVersion << " " << statusCode << " " << statusMessage << "\r\n";
 
-    // Headers: Header-Name: Header-Value CR LF
     for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
     {
         oss << it->first << ": " << it->second << "\r\n";
     }
 
-    // Always add Content-Length if a body exists and header isn't already set
-    // (This ensures compliance, though CGIHandler explicitly adds it)
     if (_body.length() > 0 && _headers.find("Content-Length") == _headers.end())
     {
         oss << "Content-Length: " << to_string_c98(_body.length()) << "\r\n";
     }
 
-    // End of headers: CR LF
     oss << "\r\n";
 
-    // Body
     oss << _body;
 
     return oss.str();
 }
 
-// Helper function to URL decode strings
 std::string urlDecode(const std::string &str)
 {
     std::string result;
@@ -98,7 +85,6 @@ std::string urlDecode(const std::string &str)
     {
         if (str[i] == '%' && i + 2 < str.length())
         {
-            // Convert hex to char
             std::string hex = str.substr(i + 1, 2);
             char ch = static_cast<char>(strtol(hex.c_str(), NULL, 16));
             result += ch;
@@ -291,11 +277,9 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
 
     if (contentType.find("application/x-www-form-urlencoded") != std::string::npos)
     {
-        // Parse form data: name=value&email=value&...
         std::map<std::string, std::string> formFields;
         std::string body = requestBody;
 
-        // Split by '&' to get individual fields
         size_t start = 0;
         size_t end = 0;
 
@@ -303,7 +287,6 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
         {
             std::string pair = body.substr(start, end - start);
 
-            // Split by '=' to get name and value
             size_t equalPos = pair.find('=');
             if (equalPos != std::string::npos)
             {
@@ -314,7 +297,6 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
             start = end + 1;
         }
 
-        // Handle the last field (after the last &)
         if (start < body.length())
         {
             std::string pair = body.substr(start);
@@ -327,7 +309,6 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
             }
         }
 
-        // Save form data to a file
         std::string saveDir = docRoot + "/data";
         std::string fileName = "formData.txt";
         std::string fullPath = saveDir + "/" + fileName;
@@ -348,7 +329,6 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
         }
         file.close();
 
-        // Create success response
         Response response;
         response.setStatus(201, "Created");
         response.addHeader("Content-Type", "text/html");
@@ -384,7 +364,6 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
         file << requestBody;
         file.close();
 
-        // Create success response directly
         Response response;
         response.setStatus(201, "Created");
         response.addHeader("Content-Type", "application/json");
@@ -396,13 +375,11 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
     }
     else if (contentType.find("multipart/form-data") != std::string::npos)
     {
-        // Extract boundary from Content-Type header
         std::string boundary;
         size_t boundaryPos = contentType.find("boundary=");
         if (boundaryPos != std::string::npos)
         {
             boundary = "--" + contentType.substr(boundaryPos + 9);
-            // Remove any trailing whitespace or semicolons
             size_t endPos = boundary.find_first_of(" ;\r\n");
             if (endPos != std::string::npos)
             {
@@ -416,51 +393,42 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
             return Response();
         }
 
-        // Variables to store parsed data
         std::vector<std::string> uploadedFiles;
         std::map<std::string, std::string> formFields;
 
-        // Split body into parts using boundary
         std::string closingBoundary = boundary + "--";
         size_t pos = 0;
 
         while (pos < requestBody.length())
         {
-            // Find next boundary
             size_t boundaryStart = requestBody.find(boundary, pos);
             if (boundaryStart == std::string::npos)
             {
                 break;
             }
 
-            // Move past the boundary
             pos = boundaryStart + boundary.length();
 
-            // Skip CRLF after boundary
             if (pos + 1 < requestBody.length() &&
                 requestBody[pos] == '\r' && requestBody[pos + 1] == '\n')
             {
                 pos += 2;
             }
 
-            // Find the next boundary to determine end of this part
             size_t nextBoundaryStart = requestBody.find(boundary, pos);
             if (nextBoundaryStart == std::string::npos)
             {
                 break;
             }
 
-            // Extract the current part (between boundaries)
             std::string part = requestBody.substr(pos, nextBoundaryStart - pos);
 
-            // Remove trailing CRLF before the next boundary
             if (part.length() >= 2 &&
                 part[part.length() - 2] == '\r' && part[part.length() - 1] == '\n')
             {
                 part = part.substr(0, part.length() - 2);
             }
 
-            // Find the empty line that separates headers from content
             size_t headerEnd = part.find("\r\n\r\n");
             if (headerEnd == std::string::npos)
             {
@@ -468,20 +436,17 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
                 continue;
             }
 
-            // Extract headers and content
             std::string headers = part.substr(0, headerEnd);
             std::string content = part.substr(headerEnd + 4);
 
-            // Parse Content-Disposition header to get name and filename
             std::string name, filename;
 
             if (headers.find("Content-Disposition") != std::string::npos)
             {
-                // Find name parameter
                 size_t namePos = headers.find("name=\"");
                 if (namePos != std::string::npos)
                 {
-                    namePos += 6; // Skip 'name="'
+                    namePos += 6;
                     size_t nameEnd = headers.find("\"", namePos);
                     if (nameEnd != std::string::npos)
                     {
@@ -489,11 +454,10 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
                     }
                 }
 
-                // Find filename parameter
                 size_t filenamePos = headers.find("filename=\"");
                 if (filenamePos != std::string::npos)
                 {
-                    filenamePos += 10; // Skip 'filename="'
+                    filenamePos += 10;
                     size_t filenameEnd = headers.find("\"", filenamePos);
                     if (filenameEnd != std::string::npos)
                     {
@@ -502,13 +466,11 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
                 }
             }
 
-            // If it's a file upload (has filename), save the file
             if (!filename.empty())
             {
                 std::string saveDir = docRoot;
                 std::string fullPath = saveDir + "/" + filename;
 
-                // Save file in binary mode
                 std::ofstream file(fullPath.c_str(), std::ios::binary);
                 if (file.is_open())
                 {
@@ -517,17 +479,14 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
                     uploadedFiles.push_back(filename);
                 }
             }
-            // Otherwise, it's a regular form field
             else if (!name.empty())
             {
                 formFields[name] = content;
             }
 
-            // Move to next part
             pos = nextBoundaryStart;
         }
 
-        // Create response showing uploaded files and form fields
         Response response;
         response.setStatus(201, "Created");
         response.addHeader("Content-Type", "text/html");
@@ -594,7 +553,6 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
     }
     else
     {
-        // Default case - treat as plain text or unknown data
         std::string saveDir = docRoot + "/data";
         std::string fileName = "postData.txt";
         std::string fullPath = saveDir + "/" + fileName;
@@ -612,7 +570,6 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
              << requestBody;
         file.close();
 
-        // Create success response
         Response response;
         response.setStatus(201, "Created");
         response.addHeader("Content-Type", "text/html");
@@ -667,7 +624,6 @@ bool deleteDirectory(const std::string &path)
     }
     closedir(dir);
 
-    // Finally delete the now-empty directory
     return rmdir(path.c_str()) == 0;
 }
 
@@ -676,7 +632,6 @@ Response Response::buildDeleteResponse(const requestParser &request, const std::
     std::string requestPath = request.getPath();
     std::string fullPath = docRoot;
 
-    // Prevent dangerous deletions or deleting root/index
     if (requestPath.empty() || requestPath == "/" || requestPath.find("..") != std::string::npos)
     {
         send_error_response(client_fd, 403, "Forbidden", serverConfig);

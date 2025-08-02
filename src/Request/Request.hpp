@@ -1,7 +1,7 @@
 #pragma once
 
 #include <map>
-#include <sstream>	 // For parsing
+#include <sstream>
 
 
 class requestParser
@@ -25,6 +25,6 @@ public:
     const std::string& getHttpVersion() const;
     const std::map<std::string, std::string>& getHeaders() const;
 
-    const std::string& getBody() const; // New: Getter for the request body
+    const std::string& getBody() const;
     void setBody(const std::string& body);
 };

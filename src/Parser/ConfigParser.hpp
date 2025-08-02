@@ -71,7 +71,6 @@ public:
 
     ConfigParser();
     void parseFile(const std::string &filename);
-    void parseString(const std::string &config_content);
     void parse();
     void printConfig();
     const std::vector<ServerConfig> &getServers() const;
@@ -81,14 +80,10 @@ public:
 
     size_t getServerCount() const;
 
-    void   printPos();
+    // listen
+    bool isValidIPv4(const std::string &ip);
+    bool isDigitString(const std::string &str);
+    bool isValidPort(const std::string &port);
 
-
-    //listen
-    bool    isValidIPv4(const std::string& ip);
-    bool    isDigitString(const std::string& str);
-    bool    isValidPort(const std::string& port);
-
-    bool    isValidServerName(const std::string& name);
-
+    bool isValidServerName(const std::string &name);
 };

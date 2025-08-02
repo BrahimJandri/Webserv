@@ -99,26 +99,24 @@ std::string CGIHandler::execute(const std::string &scriptPath, const requestPars
 
         int status = 0;
         time_t start_time = time(NULL);
-        const int timeout = 5; // seconds
+        const int timeout = 5; 
 
         while (42)
         {
             pid_t result = waitpid(pid, &status, WNOHANG);
             if (result == 0)
             {
-                // Still running
                 if (time(NULL) - start_time >= timeout)
                 {
                     kill(pid, SIGKILL);
-                    waitpid(pid, &status, 0); // cleanup zombie
+                    waitpid(pid, &status, 0);
                     close(stdout_pipe[0]);
                     throw std::runtime_error("CGI script timed out");
                 }
-                usleep(100000); // sleep 100ms
+                usleep(100000); 
             }
             else if (result > 0)
             {
-                // Process exited, read output
                 while ((bytesRead = read(stdout_pipe[0], buffer, sizeof(buffer))) > 0)
                 {
                     output.write(buffer, bytesRead);
@@ -194,7 +192,6 @@ std::map<std::string, std::string> CGIHandler::prepareCGIEnv(const requestParser
         std::string key = it->first;
         std::string value = it->second;
 
-        // Transform header name to CGI env format
         std::transform(key.begin(), key.end(), key.begin(), to_cgi_char);
 
         env["HTTP_" + key] = value;
@@ -211,7 +208,6 @@ std::string CGIHandler::handleCGI(const std::string &scriptPath, const requestPa
     {
         std::string cgiOutput = execute(scriptPath, request, env, interpreter);
 
-        // Find the separator between headers and body
         size_t pos = cgiOutput.find("\r\n\r\n");
         size_t separator_len = 4;
         if (pos == std::string::npos)
@@ -263,7 +259,6 @@ std::string CGIHandler::handleCGI(const std::string &scriptPath, const requestPa
         }
         else
         {
-            // No headers detected — treat entire output as body
             response.setStatus(200, "OK");
             response.setBody(cgiOutput);
             response.addHeader("Content-Type", "text/html");
@@ -283,7 +278,6 @@ std::string CGIHandler::handleCGI(const std::string &scriptPath, const requestPa
         {
             send_error_response(client_fd, 500, "Internal Server Error", response.serverConfig);
             response.setStatus(500, "Internal Server Error");
-            // No child process, likely a timeout or similar issue
         }
         else
         {
