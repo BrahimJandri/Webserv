@@ -468,7 +468,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
     }
     else
     {
-        send_error_response(client_fd, 405, "Method Not Allowed", serverConfig);
+        send_error_response(client_fd, 400, "Bad Request", serverConfig);
         return -1;
     }
 

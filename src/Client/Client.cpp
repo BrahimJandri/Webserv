@@ -36,6 +36,7 @@ bool Client::processRequest()
 {
     if (_request_complete)
     {
+        std::cout << "DKHLT HNA" << std::endl;
         return true;
     }
 
