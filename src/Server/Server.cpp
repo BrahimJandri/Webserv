@@ -41,7 +41,6 @@ int create_server_socket(const std::string &host, int port)
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
 
-
     if (host == "0.0.0.0")
         addr.sin_addr.s_addr = htonl(INADDR_ANY);
     else
@@ -85,7 +84,6 @@ int create_server_socket(const std::string &host, int port)
 void Server::setupServers(const ConfigParser &parser)
 {
     const std::vector<ConfigParser::ServerConfig> &serverConfigs = parser.getServers();
-
 
     for (size_t i = 0; i < serverConfigs.size(); ++i)
     {
@@ -307,36 +305,6 @@ std::string get_file_extension(const std::string &filename)
     return filename.substr(dot);
 }
 
-std::string escape_html(const std::string &input)
-{
-    std::ostringstream escaped;
-    for (size_t i = 0; i < input.size(); ++i)
-    {
-        switch (input[i])
-        {
-        case '&':
-            escaped << "&amp;";
-            break;
-        case '<':
-            escaped << "&lt;";
-            break;
-        case '>':
-            escaped << "&gt;";
-            break;
-        case '"':
-            escaped << "&quot;";
-            break;
-        case '\'':
-            escaped << "&#39;";
-            break;
-        default:
-            escaped << input[i];
-            break;
-        }
-    }
-    return escaped.str();
-}
-
 std::string generate_autoindex(const std::string &dir_path, const std::string &uri)
 {
     DIR *dir = opendir(dir_path.c_str());
@@ -345,14 +313,13 @@ std::string generate_autoindex(const std::string &dir_path, const std::string &u
 
     std::ostringstream oss;
     oss << "<!DOCTYPE html>\n";
-    oss << "<html lang=\"ar\">\n"; // Arabic language
+    oss << "<html>\n";
     oss << "<head>\n";
     oss << "  <meta charset=\"UTF-8\">\n";
-    oss << "  <title>Index of " << escape_html(uri) << "</title>\n";
-    oss << "  <style>body { font-family: sans-serif; direction: rtl; }</style>\n";
+    oss << "  <title>Index of " << uri << "</title>\n";
     oss << "</head>\n";
     oss << "<body>\n";
-    oss << "  <h1>فهرس " << escape_html(uri) << "</h1>\n";
+    oss << "  <h1>Index of " << uri << "</h1>\n";
     oss << "  <hr><pre>\n";
 
     struct dirent *entry;
@@ -370,9 +337,11 @@ std::string generate_autoindex(const std::string &dir_path, const std::string &u
                 name += "/";
         }
 
-        std::string encoded_name = escape_html(name);
-        oss << "<a href=\"" << escape_html(uri + (uri[uri.length() - 1] == '/' ? "" : "/") + name) << "\">"
-            << encoded_name << "</a>\n";
+        oss << "<a href=\"";
+        oss << uri;
+        if (uri.size() == 0 || uri[uri.size() - 1] != '/')
+            oss << "/";
+        oss << name << "\">" << name << "</a>\n";
     }
 
     oss << "  </pre><hr>\n";
@@ -381,7 +350,6 @@ std::string generate_autoindex(const std::string &dir_path, const std::string &u
     return oss.str();
 }
 
-
 int Server::prepareResponse(const requestParser &req, int client_fd)
 {
     ConfigParser::ServerConfig serverConfig = clientToServergMap[client_fd];
@@ -389,21 +357,20 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
     std::string method = req.getMethod();
     std::string version = req.getHttpVersion();
 
-    if(path.empty() || version.empty())
+    if (path.empty() || version.empty())
     {
         send_error_response(client_fd, 400, "Bad Request", serverConfig);
         return -1;
     }
-    if(version != "HTTP/1.1" && version != "HTTP/1.0")
+    if (version != "HTTP/1.1" && version != "HTTP/1.0")
     {
         send_error_response(client_fd, 505, "HTTP Version Not Supported", serverConfig);
         return -1;
     }
     size_t queryPos = path.find('?');
     if (queryPos != std::string::npos)
-    path = path.substr(0, queryPos);
-    
-    
+        path = path.substr(0, queryPos);
+
     const ConfigParser::LocationConfig *location = findMatchingLocation(serverConfig.locations, path);
 
     if (location && !location->return_directive.empty())
