@@ -386,10 +386,24 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
 {
     ConfigParser::ServerConfig serverConfig = clientToServergMap[client_fd];
     std::string path = req.getPath();
+    std::string method = req.getMethod();
+    std::string version = req.getHttpVersion();
+
+    if(path.empty() || version.empty())
+    {
+        send_error_response(client_fd, 400, "Bad Request", serverConfig);
+        return -1;
+    }
+    if(version != "HTTP/1.1" && version != "HTTP/1.0")
+    {
+        send_error_response(client_fd, 505, "HTTP Version Not Supported", serverConfig);
+        return -1;
+    }
     size_t queryPos = path.find('?');
     if (queryPos != std::string::npos)
-        path = path.substr(0, queryPos);
-
+    path = path.substr(0, queryPos);
+    
+    
     const ConfigParser::LocationConfig *location = findMatchingLocation(serverConfig.locations, path);
 
     if (location && !location->return_directive.empty())
@@ -399,7 +413,6 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
         return -1;
     }
 
-    const std::string method = req.getMethod();
     if (location && !location->allowed_methods.empty())
     {
         if (std::find(location->allowed_methods.begin(), location->allowed_methods.end(), method) == location->allowed_methods.end())
@@ -671,6 +684,9 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
     case 504:
         status_text = "Gateway Timeout";
         break;
+    case 505:
+        status_text = "HTTP Version Not Supported";
+        break;
     default:
         status_text = "Error";
         break;
@@ -699,6 +715,8 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
             error_page_path = "./www/epages/302.html";
         else if (status_code == 504)
             error_page_path = "./www/epages/504.html";
+        else if (status_code == 505)
+            error_page_path = "./www/epages/505.html";
         else
             error_page_path = "./www/epages/500.html";
     }

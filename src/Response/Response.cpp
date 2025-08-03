@@ -203,21 +203,15 @@ Response Response::buildAutoindexResponse(const std::string &htmlContent)
 
 Response Response::buildGetResponse(const requestParser &request, const std::string &docRoot, const bool autoindex, int client_fd, const ConfigParser::ServerConfig &serverConfig)
 {
+    if (docRoot.empty())
+    {
+        send_error_response(client_fd, 404, "Not Found", serverConfig);
+        return Response();
+    }
+
     std::string requestPath = request.getPath();
-    std::string requestVersion = request.getHttpVersion();
     std::string fullPath = docRoot;
 
-    if (requestPath.empty() || requestVersion.empty())
-    {
-        send_error_response(client_fd, 400, "Bad Request", serverConfig);
-        return Response();
-    }
-
-    if (requestVersion != "HTTP/1.1")
-    {
-        send_error_response(client_fd, 505, "HTTP Version Not Supported", serverConfig);
-        return Response();
-    }
     if (!fileExists(fullPath))
     {
         send_error_response(client_fd, 404, "Not Found", serverConfig);
@@ -226,7 +220,6 @@ Response Response::buildGetResponse(const requestParser &request, const std::str
 
     if (isDirectory(fullPath))
     {
-
         if (fullPath[fullPath.length() - 1] != '/')
             fullPath += '/';
 
@@ -268,13 +261,7 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
 {
     std::string requestPath = request.getPath();
     std::string requestBody = request.getBody();
-    std::string requestVersion = request.getHttpVersion();
 
-    if (requestPath.empty() || requestBody.empty() || requestVersion.empty() || requestVersion != "1.1")
-    {
-        send_error_response(client_fd, 400, "Bad Request", serverConfig);
-        return Response();
-    }
     std::map<std::string, std::string> headers = request.getHeaders();
     std::string contentType = "";
     for (std::map<std::string, std::string>::iterator iter = headers.begin(); iter != headers.end(); ++iter)
@@ -643,19 +630,14 @@ bool deleteDirectory(const std::string &path)
 Response Response::buildDeleteResponse(const requestParser &request, const std::string &docRoot, int client_fd, const ConfigParser::ServerConfig &serverConfig)
 {
     std::string requestPath = request.getPath();
-    std::string requestVersion = request.getHttpVersion();
     std::string fullPath = docRoot;
 
-    if (requestPath == "/" || requestPath.find("..") != std::string::npos)
+    if (requestPath.empty() || requestPath == "/" || requestPath.find("..") != std::string::npos)
     {
         send_error_response(client_fd, 403, "Forbidden", serverConfig);
         return Response();
     }
-    if (requestPath.empty() || requestVersion.empty() || requestVersion != "1.1")
-    {
-        send_error_response(client_fd, 400, "Bad Request", serverConfig);
-        return Response();
-    }
+
     struct stat pathStat;
     if (stat(fullPath.c_str(), &pathStat) != 0)
     {
