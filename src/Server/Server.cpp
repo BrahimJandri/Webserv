@@ -350,6 +350,21 @@ std::string generate_autoindex(const std::string &dir_path, const std::string &u
     return oss.str();
 }
 
+void printRequest(const requestParser &req)
+{
+    std::cout << "Request Method: " << req.getMethod() << std::endl;
+    std::cout << "Request Path: " << req.getPath() << std::endl;
+    std::cout << "HTTP Version: " << req.getHttpVersion() << std::endl;
+    std::map<std::string, std::string> headers = req.getHeaders();
+    std::cout << "Request Headers:" << std::endl;
+    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
+    {
+        std::cout << "  " << it->first << ": " << it->second << std::endl;
+    }
+    std::cout << "Request Body: " << req.getBody() << std::endl;
+    std::cout << "-----------------------------" << std::endl;
+}
+
 int Server::prepareResponse(const requestParser &req, int client_fd)
 {
     ConfigParser::ServerConfig serverConfig = clientToServergMap[client_fd];
@@ -357,14 +372,19 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
     std::string method = req.getMethod();
     std::string version = req.getHttpVersion();
 
-    if (path.empty() || version.empty())
+    // printRequest(req);
+
+    if (!path.empty() && !method.empty() && !version.empty())
+    {
+        if (version != "HTTP/1.1" && version != "HTTP/1.0")
+        {
+            send_error_response(client_fd, 505, "HTTP Version Not Supported", serverConfig);
+            return -1;
+        }
+    }
+    else
     {
         send_error_response(client_fd, 400, "Bad Request", serverConfig);
-        return -1;
-    }
-    if (version != "HTTP/1.1" && version != "HTTP/1.0")
-    {
-        send_error_response(client_fd, 505, "HTTP Version Not Supported", serverConfig);
         return -1;
     }
     size_t queryPos = path.find('?');
@@ -448,7 +468,7 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
     }
     else
     {
-        send_error_response(client_fd, 400, "Bad Request", serverConfig);
+        send_error_response(client_fd, 405, "Method Not Allowed", serverConfig);
         return -1;
     }
 
@@ -627,9 +647,6 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
 
     switch (status_code)
     {
-    case 302:
-        status_text = "Moved Temporarily";
-        break;
     case 400:
         status_text = "Bad Request";
         break;
@@ -678,8 +695,6 @@ void send_error_response(int client_fd, int status_code, const std::string &mess
             error_page_path = "./www/epages/405.html";
         else if (status_code == 413)
             error_page_path = "./www/epages/413.html";
-        else if (status_code == 302)
-            error_page_path = "./www/epages/302.html";
         else if (status_code == 504)
             error_page_path = "./www/epages/504.html";
         else if (status_code == 505)

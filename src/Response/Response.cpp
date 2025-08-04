@@ -262,6 +262,12 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
     std::string requestPath = request.getPath();
     std::string requestBody = request.getBody();
 
+    if(requestBody.empty())
+    {
+        send_error_response(client_fd, 400, "Bad Request", serverConfig);
+        return Response();
+    }
+
     std::map<std::string, std::string> headers = request.getHeaders();
     std::string contentType = "";
     for (std::map<std::string, std::string>::iterator iter = headers.begin(); iter != headers.end(); ++iter)
@@ -309,7 +315,7 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
             }
         }
 
-        std::string saveDir = docRoot + "/data";
+        std::string saveDir = docRoot;
         std::string fileName = "formData.txt";
         std::string fullPath = saveDir + "/" + fileName;
 
@@ -350,13 +356,14 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
     }
     else if (contentType.find("application/json") != std::string::npos)
     {
-        std::string saveDir = docRoot + "/data";
+        std::string saveDir = docRoot;
         std::string fileName = "jsonData.json";
         std::string fullPath = saveDir + "/" + fileName;
 
         std::ofstream file(fullPath.c_str());
         if (!file.is_open())
         {
+            Utils::log("Failed to open file for writing: " + fullPath, AnsiColor::BOLD_RED);
             send_error_response(client_fd, 500, "Internal Server Error", serverConfig);
             return Response();
         }
@@ -389,7 +396,7 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
 
         if (boundary.empty())
         {
-            send_error_response(client_fd, 400, "Bad Request: Missing boundary in multipart/form-data", serverConfig);
+            send_error_response(client_fd, 400, "Bad Request", serverConfig);
             return Response();
         }
 
@@ -553,7 +560,7 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
     }
     else
     {
-        std::string saveDir = docRoot + "/data";
+        std::string saveDir = docRoot;
         std::string fileName = "postData.txt";
         std::string fullPath = saveDir + "/" + fileName;
 
