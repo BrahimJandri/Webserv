@@ -377,7 +377,6 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
         std::ofstream file(fullPath.c_str());
         if (!file.is_open())
         {
-            Utils::log("Failed to open file for writing: " + fullPath, AnsiColor::BOLD_RED);
             send_error_response(client_fd, 500, "Internal Server Error", serverConfig);
             return Response();
         }
