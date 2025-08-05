@@ -257,6 +257,20 @@ Response Response::buildGetResponse(const requestParser &request, const std::str
     return buildFileResponse(fullPath, serverConfig, client_fd);
 }
 
+std::string generateUniqueFilename(const std::string& prefix, const std::string& extension)
+{
+    static bool seeded = false;
+    if (!seeded)
+    {
+        std::srand(static_cast<unsigned int>(time(NULL)));
+        seeded = true;
+    }
+
+    std::ostringstream filename;
+    filename << prefix << "_" << time(NULL) << "_" << (std::rand() % 100000) << extension;
+    return filename.str();
+}
+
 Response Response::buildPostResponse(const requestParser &request, const std::string &docRoot, int client_fd, const ConfigParser::ServerConfig &serverConfig)
 {
     std::string requestPath = request.getPath();
@@ -316,7 +330,7 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
         }
 
         std::string saveDir = docRoot;
-        std::string fileName = "formData.txt";
+        std::string fileName = generateUniqueFilename("formData", ".txt");
         std::string fullPath = saveDir + "/" + fileName;
 
         std::ofstream file(fullPath.c_str());
@@ -357,7 +371,7 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
     else if (contentType.find("application/json") != std::string::npos)
     {
         std::string saveDir = docRoot;
-        std::string fileName = "jsonData.json";
+        std::string fileName = generateUniqueFilename("jsonData", ".json");
         std::string fullPath = saveDir + "/" + fileName;
 
         std::ofstream file(fullPath.c_str());
@@ -561,7 +575,7 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
     else
     {
         std::string saveDir = docRoot;
-        std::string fileName = "postData.txt";
+        std::string fileName = generateUniqueFilename("postData", ".txt");
         std::string fullPath = saveDir + "/" + fileName;
 
         std::ofstream file(fullPath.c_str());
