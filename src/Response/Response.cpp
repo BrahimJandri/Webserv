@@ -257,7 +257,7 @@ Response Response::buildGetResponse(const requestParser &request, const std::str
     return buildFileResponse(fullPath, serverConfig, client_fd);
 }
 
-std::string generateUniqueFilename(const std::string& prefix, const std::string& extension)
+std::string generateUniqueFilename(const std::string &prefix, const std::string &extension)
 {
     static bool seeded = false;
     if (!seeded)
@@ -275,14 +275,31 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
 {
     std::string requestPath = request.getPath();
     std::string requestBody = request.getBody();
+    size_t contentLength = 0;
 
-    if(requestBody.empty())
+    std::map<std::string, std::string> headers = request.getHeaders();
+    std::map<std::string, std::string>::iterator it = headers.find("Content-Length");
+
+    if (it != headers.end())
+    {
+        std::stringstream ss(it->second);
+        ss >> contentLength;
+    }
+    if (requestBody.length() > contentLength)
+    {
+        requestBody = requestBody.substr(0, contentLength);
+    }
+    if (requestBody.length() < contentLength)
+    {
+        send_error_response(client_fd, 400, "Bad Request", serverConfig);
+        return Response();
+    }
+    if (requestBody.empty())
     {
         send_error_response(client_fd, 400, "Bad Request", serverConfig);
         return Response();
     }
 
-    std::map<std::string, std::string> headers = request.getHeaders();
     std::string contentType = "";
     for (std::map<std::string, std::string>::iterator iter = headers.begin(); iter != headers.end(); ++iter)
     {
@@ -339,9 +356,6 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
             send_error_response(client_fd, 500, "Internal Server Error", serverConfig);
             return Response();
         }
-
-        file << "Form Submission Data:\n";
-        file << "Path: " << requestPath << "\n\n";
 
         for (std::map<std::string, std::string>::iterator iter = formFields.begin(); iter != formFields.end(); ++iter)
         {
@@ -583,11 +597,7 @@ Response Response::buildPostResponse(const requestParser &request, const std::st
             send_error_response(client_fd, 500, "Internal Server Error", serverConfig);
             return Response();
         }
-        file << "POST Data Submission:\n";
-        file << "Path: " << requestPath << "\n";
-        file << "Content-Type: " << (contentType.empty() ? "Unknown" : contentType) << "\n\n";
-        file << "Raw Body:\n"
-             << requestBody;
+        file << requestBody;
         file.close();
 
         Response response;

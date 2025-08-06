@@ -542,6 +542,7 @@ void Server::handleClientWrite(int client_fd)
     closeClientConnection(client_fd);
 }
 
+
 void Server::handleConnections()
 {
     signal(SIGINT, sighandler);

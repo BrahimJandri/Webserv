@@ -91,6 +91,8 @@ void requestParser::parseRequest(const std::string &rawRequest)
 	}
 }
 
+
+
 const std::string &requestParser::getMethod() const { return _method; }
 const std::string &requestParser::getPath() const { return _path; }
 const std::string &requestParser::getHttpVersion() const { return _httpVersion; }
