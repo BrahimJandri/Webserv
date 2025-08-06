@@ -1,4 +1,0 @@
-POST /upload HTTP/1.0
-Content-Length: -1
-
-hello=world
