@@ -381,6 +381,11 @@ int Server::prepareResponse(const requestParser &req, int client_fd)
             send_error_response(client_fd, 505, "HTTP Version Not Supported", serverConfig);
             return -1;
         }
+        if(version == "HTTP/1.1" && !req.getHeaders().count("Host"))
+        {
+            send_error_response(client_fd, 400, "Bad Request", serverConfig);
+            return -1;
+        }
     }
     else
     {
