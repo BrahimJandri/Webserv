@@ -9,7 +9,7 @@
 │                                                                                     │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐           │
 │  │   Config    │    │   Server    │    │   Client    │    │    HTTP     │           │
-│  │   Parser    │──▶│   Manager   │───▶│   Handler   │──▶│  Processor  │           │
+│  │   Parser    │──▶ │   Manager   │───▶│   Handler   │──▶│  Processor   │           │
 │  └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘           │
 │         │                   │                   │                   │               │
 │         ▼                   ▼                   ▼                   ▼               │
@@ -34,7 +34,7 @@ Step 1: SERVER STARTUP
 │ 3. bind() + listen()     │  │ server.conf:                            │            │
 │ 4. Add to epoll          │  │ server {                                │            │
 │                          │  │   listen 8080;                          │            │
-│                          └▶│   server_name example.com;              │            │
+│                          └▶ │  server_name example.com;               │            │
 │                             │   location / { root /var/www; }         │            │
 │                             │ }                                       │            │
 │                             └─────────────────────────────────────────┘            │
@@ -65,9 +65,9 @@ Step 3: CLIENT CONNECTION ARRIVES
 │                                                                                    │
 │        Internet                    Server                                          │
 │     ┌─────────────┐               ┌─────────────┐                                  │
-│     │   Client    │ ──TCP SYN──▶ │   Server    │                                   │
+│     │   Client    │ ──TCP SYN──▶  │   Server    │                                  │
 │     │ 192.168.1.5 │ ◄─TCP SYN+ACK │   Socket    │                                  │
-│     │             │ ──TCP ACK──▶ │   fd: 3     │                                   │
+│     │             │ ──TCP ACK──▶  │   fd: 3     │                                  │
 │     └─────────────┘               └─────────────┘                                  │
 │                                         │                                          │
 │                                         ▼                                          │
@@ -176,7 +176,7 @@ Step 7: HTTP REQUEST PARSING
 │                                                                                    │
 │ Parsing State Machine:                                                             │
 │ ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐           │
-│ │   READING   │──▶│   PARSING   │──▶ │ PROCESSING  │──▶│   SENDING   │           │
+│ │   READING   │──▶ │   PARSING   │──▶ │ PROCESSING  │──▶ │   SENDING   │           │
 │ │   REQUEST   │    │   HEADERS   │    │   REQUEST   │    │  RESPONSE   │           │
 │ └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘           │
 │                                                                                    │
@@ -217,7 +217,7 @@ Step 8: REQUEST PROCESSING & ROUTING
 │    └─────────────────────────────────────────────────────────────────────────┘     │
 │                                                                                    │
 │ 3. Method Validation:                                                              │
-│    GET ∈ {GET, POST} ✓ Allowed                                                    │
+│    GET ∈ {GET, POST} ✓ Allowed                                                     │
 │                                                                                    │
 │ 4. File System Resolution:                                                         │
 │    root="/var/www/html" + path="/" → "/var/www/html/"                              │
@@ -295,7 +295,7 @@ Step 10: SENDING RESPONSE (EPOLLOUT Event)
 │ Network Transmission:                                                              │
 │     Server Side                           Client Side                              │
 │ ┌─────────────────┐                   ┌─────────────────┐                          │
-│ │ Response Buffer │ ───TCP packets─▶ │ Client receives │                          │
+│ │ Response Buffer │ ───TCP packets─▶  │ Client receives │                          │
 │ │ HTTP/1.1 200 OK │                   │ HTTP response   │                          │
 │ │ Content-Type... │                   │ Displays page   │                          │
 │ │ <html>...       │                   └─────────────────┘                          │
@@ -326,9 +326,9 @@ Step 11: CONNECTION CLEANUP
 │                                                                                    │
 │ 4. TCP Connection Termination:                                                     │
 │    ┌─────────────┐              ┌─────────────┐                                    │
-│    │   Server    │ ───FIN────▶  │   Client    │                                   │
+│    │   Server    │ ───FIN────▶  │   Client    │                                    │
 │    │             │ ◄──FIN+ACK── │             │                                    │
-│    │             │ ───ACK────▶  │             │                                   │
+│    │             │ ───ACK────▶  │             │                                    │
 │    └─────────────┘              └─────────────┘                                    │
 │                                                                                    │
 │ Memory State After Cleanup:                                                        │
@@ -407,22 +407,22 @@ Step 11: CONNECTION CLEANUP
 │ │                                                                             │     │
 │ │ std::map<int, Client*> clients:                                             │     │
 │ │ ┌────────┬──────────────┐ ┌────────┬──────────────┐                         │     │
-│ │ │   6    │ Client* ──────┼─│   8    │ Client* ──────┼─┐                     │     │
+│ │ │   6    │ Client* ─────┼─│   8    │ Client* ─────┼─┐                       │     │
 │ │ └────────┴──────────────┘ └────────┴──────────────┘ │                       │     │
 │ │                                                      │                      │     │
 │ │ Client Objects:                                      │                      │     │
 │ │ ┌─────────────────────────────────────────────────┐  │                      │     │
 │ │ │ Client(fd=6):                                   │  │                      │     │
 │ │ │ • state = READING_REQUEST                       │◄─┘                      │     │
-│ │ │ • request_buffer = "GET / HTTP/1.1..."         │                          │     │
+│ │ │ • request_buffer = "GET / HTTP/1.1..."          │                         │     │
 │ │ │ • response_buffer = ""                          │                         │     │
 │ │ │ • bytes_sent = 0                                │                         │     │
 │ │ └─────────────────────────────────────────────────┘                         │     │
 │ │ ┌─────────────────────────────────────────────────┐                         │     │
 │ │ │ Client(fd=8):                                   │◄─┐                      │     │
 │ │ │ • state = SENDING_RESPONSE                      │  │                      │     │
-│ │ │ • request_buffer = "POST /upload HTTP/1.1..."  │  │                       │     │
-│ │ │ • response_buffer = "HTTP/1.1 200 OK..."       │  │                       │     │
+│ │ │ • request_buffer = "POST /upload HTTP/1.1..."   │  │                      │     │
+│ │ │ • response_buffer = "HTTP/1.1 200 OK..."        │  │                      │     │
 │ │ │ • bytes_sent = 150                              │  │                      │     │
 │ │ └─────────────────────────────────────────────────┘  │                      │     │
 │ │                                                      │                      │     │
